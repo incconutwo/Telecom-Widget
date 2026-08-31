@@ -229,6 +229,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
   const hasExtraCredit = Boolean(data.extraDetails && data.extraDetails.trim() !== '' && data.extraDetails !== '0.00 Dh');
 
+  return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Top Header */}
       <View style={styles.topBar}>
