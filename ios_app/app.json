@@ -39,6 +39,7 @@
       "policy": "appVersion"
     },
     "plugins": [
+      "@bacons/apple-targets",
       "expo-secure-store",
       "expo-updates",
       "./plugins/withTelecomWidgets",

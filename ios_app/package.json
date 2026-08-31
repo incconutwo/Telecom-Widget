@@ -10,6 +10,7 @@
     "android": "expo start --android"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@bottom-tabs/react-navigation": "^1.4.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-menu/menu": "^2.0.0",
