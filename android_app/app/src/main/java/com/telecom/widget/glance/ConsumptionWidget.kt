@@ -242,7 +242,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                         .fillMaxWidth()
                         .clickable(globalTapAction)
                 ) {
-                    CompactLayout(data, primaryProvider, onSurfaceProvider, onSurfaceVariantProvider)
+                    CompactLayout(data, primaryProvider, onSurfaceProvider, onSurfaceVariantProvider, context)
                 }
 
                 Row(
@@ -393,13 +393,13 @@ class ConsumptionWidget : GlanceAppWidget() {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.ic_refresh),
-                            contentDescription = "Refresh",
+                            contentDescription = context.getString(R.string.refresh),
                             modifier = GlanceModifier.size(16.dp),
                             colorFilter = ColorFilter.tint(onBtnContainerColor)
                         )
                         Spacer(modifier = GlanceModifier.width(6.dp))
                         Text(
-                            text = "Refresh",
+                            text = context.getString(R.string.refresh),
                             style = TextStyle(
                                 color = onBtnContainerColor,
                                 fontWeight = FontWeight.Medium,
@@ -435,7 +435,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                         )
                         Spacer(modifier = GlanceModifier.width(6.dp))
                         Text(
-                            text = "Internet",
+                            text = context.getString(R.string.internet),
                             style = TextStyle(color = onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         )
                     }
@@ -466,7 +466,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                         )
                         Spacer(modifier = GlanceModifier.width(6.dp))
                         Text(
-                            text = "Calls",
+                            text = context.getString(R.string.calls),
                             style = TextStyle(color = onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         )
                     }
@@ -483,7 +483,7 @@ class ConsumptionWidget : GlanceAppWidget() {
 
                 // Breakdown Section Header
                 Text(
-                    text = "Plan Breakdown",
+                    text = context.getString(R.string.plan_details),
                     style = TextStyle(
                         color = primary,
                         fontWeight = FontWeight.Bold,
@@ -520,7 +520,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                         }
                     } else {
                         Text(
-                            text = "All balances up to date",
+                            text = context.getString(R.string.last_updated),
                             style = TextStyle(color = onSurfaceVariant, fontSize = 13.sp)
                         )
                     }
@@ -541,7 +541,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Open Telecom App",
+                    text = context.getString(R.string.tap_app),
                     style = TextStyle(
                         color = primary,
                         fontWeight = FontWeight.Bold,
@@ -553,7 +553,7 @@ class ConsumptionWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun CompactLayout(data: ConsumptionData, primary: ColorProvider, onSurface: ColorProvider, onSurfaceVariant: ColorProvider) {
+    private fun CompactLayout(data: ConsumptionData, primary: ColorProvider, onSurface: ColorProvider, onSurfaceVariant: ColorProvider, context: Context) {
         val internetDisplay = if (data.internetPercent != null) "${data.internetRemaining} (${data.internetPercent.toInt()}%)" else data.internetRemaining
         val callsDisplay = if (data.callsPercent != null) "${data.callsRemaining} (${data.callsPercent.toInt()}%)" else data.callsRemaining
 
@@ -571,7 +571,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                     colorFilter = ColorFilter.tint(onSurfaceVariant)
                 )
                 Spacer(modifier = GlanceModifier.width(4.dp))
-                Text(text = "Internet", style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
+                Text(text = context.getString(R.string.internet), style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
             }
             Text(
                 text = internetDisplay,
@@ -586,7 +586,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                     colorFilter = ColorFilter.tint(onSurfaceVariant)
                 )
                 Spacer(modifier = GlanceModifier.width(4.dp))
-                Text(text = "Calls", style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
+                Text(text = context.getString(R.string.calls), style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
             }
             Text(
                 text = callsDisplay,
@@ -656,7 +656,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.ic_settings),
-                            contentDescription = "Settings",
+                            contentDescription = context.getString(R.string.widget_settings),
                             modifier = GlanceModifier.size(14.dp),
                             colorFilter = ColorFilter.tint(onBtnContainerColor)
                         )
@@ -675,13 +675,13 @@ class ConsumptionWidget : GlanceAppWidget() {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.ic_refresh),
-                            contentDescription = "Refresh",
+                            contentDescription = context.getString(R.string.refresh),
                             modifier = GlanceModifier.size(14.dp),
                             colorFilter = ColorFilter.tint(onBtnContainerColor)
                         )
                         Spacer(modifier = GlanceModifier.width(4.dp))
                         Text(
-                            text = "Refresh",
+                            text = context.getString(R.string.refresh),
                             style = TextStyle(
                                 color = onBtnContainerColor,
                                 fontWeight = FontWeight.Medium,
@@ -712,7 +712,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                         )
                         Spacer(modifier = GlanceModifier.width(4.dp))
                         Text(
-                            text = "Internet",
+                            text = context.getString(R.string.internet),
                             maxLines = 1,
                             style = TextStyle(color = onSurfaceVariant, fontSize = 12.sp)
                         )
@@ -733,7 +733,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                         )
                         Spacer(modifier = GlanceModifier.width(4.dp))
                         Text(
-                            text = "Calls",
+                            text = context.getString(R.string.calls),
                             maxLines = 1,
                             style = TextStyle(color = onSurfaceVariant, fontSize = 12.sp)
                         )

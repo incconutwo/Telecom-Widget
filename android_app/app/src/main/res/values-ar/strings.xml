@@ -1,0 +1,83 @@
+<resources>
+    <string name="app_name">Telecom Widget</string>
+    <string name="cancel">إلغاء</string>
+    <string name="save">حفظ</string>
+    <string name="done">تم</string>
+    <string name="continue_text">متابعة</string>
+    <string name="add">إضافة</string>
+    <string name="active">نشط</string>
+    <string name="remove">حذف الحساب</string>
+    <string name="delete">حذف</string>
+    <string name="delete_account_title">حذف الحساب؟</string>
+    <string name="delete_account_confirm">هل أنت متأكد من حذف حساب %1$s (%2$s)؟</string>
+
+    <!-- Dashboard & Metrics -->
+    <string name="balance">الرصيد</string>
+    <string name="internet">الإنترنت</string>
+    <string name="calls">المكالمات</string>
+    <string name="sms">الرسائل</string>
+    <string name="main_balance">الرصيد الرئيسي</string>
+    <string name="solde_recharge">رصيد التعبئة</string>
+    <string name="plan_details">الباقة</string>
+    <string name="live_notification">الإشعار المباشر</string>
+    <string name="live_status_title">حالة الرصيد المباشرة</string>
+    <string name="live_status_subtitle">عرض دائم في لوحة الإشعارات وشاشة القفل</string>
+    <string name="settings">الإعدادات</string>
+    <string name="add_account">إضافة حساب</string>
+    <string name="refresh">تحديث</string>
+    <string name="last_updated">محدّث مؤخراً</string>
+    <string name="accounts_connected">%1$d حساب(ات) متصلة</string>
+    <string name="select_line">اختر الخط</string>
+    <string name="no_consumption_data">لا توجد بيانات للرصيد. اسحب للأسفل للتحديث.</string>
+
+    <!-- Login -->
+    <string name="welcome">مرحباً</string>
+    <string name="welcome_subtitle">تابع استهلاك الرصيد والإنترنت بسهولة</string>
+    <string name="add_account_title">إضافة حساب</string>
+    <string name="add_account_subtitle">ربط اشتراك هاتفي إضافي</string>
+    <string name="operator">المشغّل</string>
+    <string name="credentials">بيانات الدخول</string>
+    <string name="email">البريد الإلكتروني</string>
+    <string name="email_or_phone">الهاتف أو البريد</string>
+    <string name="phone">رقم الهاتف</string>
+    <string name="password">كلمة المرور</string>
+    <string name="log_in">تسجيل الدخول</string>
+    <string name="connect_account">ربط الحساب</string>
+    <string name="error_empty_credentials">يرجى إدخال البريد الإلكتروني أو الهاتف</string>
+    <string name="error_empty_password">يرجى إدخال كلمة المرور</string>
+    <string name="login_failed">فشل تسجيل الدخول. يرجى التحقق من البيانات.</string>
+
+    <!-- Privacy & Security -->
+    <string name="privacy_security">الخصوصية والأمان</string>
+    <string name="privacy_hero_subtitle">كيف يحمي التطبيق بياناتك واعتماداتك.</string>
+    <string name="local_storage_title">تخزين مشفر محلياً</string>
+    <string name="local_storage_desc">تشفير آمن للبيانات محلياً على جهازك بواسطة Android Keystore و MasterKey AES-GCM.</string>
+    <string name="no_intermediary_title">دون أي خوادم وسيطة</string>
+    <string name="no_intermediary_desc">اتصال مباشر من جهازك إلى الخوادم الرسمية لشركات الاتصالات دون وسيط.</string>
+    <string name="openSource_title">مستقل ومفتوح المصدر</string>
+    <string name="openSource_desc">تطبيق مستقل مفتوح المصدر غير تابع رسمياً لاتصالات المغرب أو أورنج أو إنوي.</string>
+
+    <!-- Settings & App Info -->
+    <string name="accounts_section">الحسابات</string>
+    <string name="security_section">الأمان</string>
+    <string name="about_section">حول</string>
+    <string name="app_version">إصدار التطبيق</string>
+    <string name="privacy_subtitle">تشفير آمن محلياً على الجهاز</string>
+
+    <!-- Widget Configuration -->
+    <string name="widget_settings">إعدادات الأداة</string>
+    <string name="account">الحساب</string>
+    <string name="widget_appearance_section">المظهر</string>
+    <string name="widget_opacity">الشفافية</string>
+    <string name="widget_tint">الألوان</string>
+    <string name="widget_tint_system">تلقائي</string>
+    <string name="widget_tint_light">فاتح</string>
+    <string name="widget_tint_dark">داكن</string>
+    <string name="widget_font">الخط</string>
+    <string name="widget_font_one_ui">One UI Sans</string>
+    <string name="widget_font_google_sans">Google Sans Flex</string>
+    <string name="widget_show_extra_details">إظهار التفاصيل الإضافية</string>
+    <string name="widget_tap_action">إجراء النقر</string>
+    <string name="tap_refresh">تحديث الأرقام</string>
+    <string name="tap_app">فتح التطبيق</string>
+</resources>

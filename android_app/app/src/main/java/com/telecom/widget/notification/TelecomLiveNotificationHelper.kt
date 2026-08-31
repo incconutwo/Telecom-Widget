@@ -128,8 +128,8 @@ object TelecomLiveNotificationHelper {
         // STANDARD NOTIFICATION FALLBACK
         // =========================================================================
         val bigText = buildString {
-            appendLine("$globe Internet: ${data.internetRemaining}")
-            append("$phoneIcon Calls: $callsFormatted")
+            appendLine("$globe ${context.getString(R.string.internet)}: ${data.internetRemaining}")
+            append("$phoneIcon ${context.getString(R.string.calls)}: $callsFormatted")
             if (!data.structuredDetails.isNullOrEmpty()) {
                 appendLine()
                 data.structuredDetails.take(4).forEach {
@@ -150,7 +150,7 @@ object TelecomLiveNotificationHelper {
             .setProgress(100, progress, false)
             .setSubText(subTextInfo)
             .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
-            .addAction(R.drawable.ic_refresh, "Refresh", refreshPendingIntent)
+            .addAction(R.drawable.ic_refresh, context.getString(R.string.refresh), refreshPendingIntent)
 
         manager.notify(notifId, compatBuilder.build())
     }

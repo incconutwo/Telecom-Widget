@@ -90,7 +90,7 @@ dependencies {
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
 
-    // Preferences DataStore for saving credentials securely
+    // Preferences DataStore for persistent settings and cached data (credentials encrypted via Android KeyStore AES-256-GCM)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // WorkManager for background sync

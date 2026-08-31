@@ -1,5 +1,70 @@
 <resources>
     <string name="app_name">Telecom Widget</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="done">Done</string>
+    <string name="continue_text">Continue</string>
+    <string name="add">Add</string>
+    <string name="active">Active</string>
+    <string name="remove">Remove Account</string>
+    <string name="delete">Delete</string>
+    <string name="delete_account_title">Delete Account?</string>
+    <string name="delete_account_confirm">Are you sure you want to remove this %1$s account (%2$s)?</string>
+
+    <!-- Dashboard & Metrics -->
+    <string name="balance">BALANCE</string>
+    <string name="internet">Internet</string>
+    <string name="calls">Calls</string>
+    <string name="sms">SMS</string>
+    <string name="main_balance">Main Balance</string>
+    <string name="solde_recharge">Recharge Balance</string>
+    <string name="plan_details">PLAN DETAILS</string>
+    <string name="live_notification">LIVE NOTIFICATION</string>
+    <string name="live_status_title">Live Balance Notification</string>
+    <string name="live_status_subtitle">Persistent status in notification drawer and Lock Screen</string>
+    <string name="settings">Settings</string>
+    <string name="add_account">Add Account</string>
+    <string name="refresh">Refresh</string>
+    <string name="last_updated">Updated recently</string>
+    <string name="accounts_connected">%1$d account(s) connected</string>
+    <string name="select_line">Select a Line</string>
+    <string name="no_consumption_data">No balance data available. Pull down to refresh.</string>
+
+    <!-- Login -->
+    <string name="welcome">Welcome</string>
+    <string name="welcome_subtitle">Sign in to monitor your cellular and internet usage</string>
+    <string name="add_account_title">Add Account</string>
+    <string name="add_account_subtitle">Connect an additional telecom subscription</string>
+    <string name="operator">OPERATOR</string>
+    <string name="credentials">CREDENTIALS</string>
+    <string name="email">Email</string>
+    <string name="email_or_phone">Phone Number or Email</string>
+    <string name="phone">Phone Number</string>
+    <string name="password">Password</string>
+    <string name="log_in">Log In</string>
+    <string name="connect_account">Connect Account</string>
+    <string name="error_empty_credentials">Please enter your email or phone number</string>
+    <string name="error_empty_password">Please enter your password</string>
+    <string name="login_failed">Login failed. Please check your credentials.</string>
+
+    <!-- Privacy & Security -->
+    <string name="privacy_security">Privacy &amp; Security</string>
+    <string name="privacy_hero_subtitle">How Telecom Widget protects your credentials and personal data.</string>
+    <string name="local_storage_title">Hardware Encrypted Storage</string>
+    <string name="local_storage_desc">Your credentials and tokens are encrypted strictly on-device using Android Keystore &amp; MasterKey AES-GCM.</string>
+    <string name="no_intermediary_title">Zero Intermediary Servers</string>
+    <string name="no_intermediary_desc">All balance requests communicate directly from your device to the official telecom carrier endpoints.</string>
+    <string name="openSource_title">Independent &amp; Open Source</string>
+    <string name="openSource_desc">This application is an independent client utility and is not affiliated with, sponsored by, or endorsed by Maroc Telecom, Orange, or Inwi.</string>
+
+    <!-- Settings & App Info -->
+    <string name="accounts_section">ACCOUNTS</string>
+    <string name="security_section">SECURITY</string>
+    <string name="about_section">ABOUT</string>
+    <string name="app_version">App Version</string>
+    <string name="privacy_subtitle">Hardware-backed on-device encryption</string>
+
+    <!-- Widget Configuration -->
     <string name="widget_settings">Widget settings</string>
     <string name="account">Account</string>
     <string name="widget_appearance_section">Appearance</string>
@@ -15,6 +80,4 @@
     <string name="widget_tap_action">Widget tap action</string>
     <string name="tap_refresh">Refresh stats</string>
     <string name="tap_app">Open app</string>
-    <string name="cancel">Cancel</string>
-    <string name="save">Save</string>
 </resources>

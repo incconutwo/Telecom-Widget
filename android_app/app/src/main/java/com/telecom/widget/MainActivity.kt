@@ -28,7 +28,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -40,8 +40,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -63,6 +67,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.telecom.widget.glance.ConsumptionWidget
 import com.telecom.widget.network.*
+import com.telecom.widget.security.*
 import com.telecom.widget.ui.theme.TelecomWidgetTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -72,11 +77,12 @@ import java.util.concurrent.TimeUnit
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-// ── M3 Expressive Bounce Click Modifier ────────────────────────────────────────
+// ── M3 Expressive Bounce Click Modifier with Tactile Haptics ───────────────────
 
 @Composable
 fun Modifier.bounceClick(scaleDown: Float = 0.96f): Modifier {
     var isPressed by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
     val scale by animateFloatAsState(
         targetValue = if (isPressed) scaleDown else 1f,
         animationSpec = spring(dampingRatio = 0.65f, stiffness = 450f),
@@ -92,6 +98,7 @@ fun Modifier.bounceClick(scaleDown: Float = 0.96f): Modifier {
                 while (true) {
                     awaitFirstDown(requireUnconsumed = false)
                     isPressed = true
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     try {
                         waitForUpOrCancellation()
                     } finally {
@@ -100,6 +107,40 @@ fun Modifier.bounceClick(scaleDown: Float = 0.96f): Modifier {
                 }
             }
         }
+}
+
+// ── M3 Expressive Odometer Rolling Text Animation ─────────────────────────────
+
+@Composable
+fun AnimatedRollingText(
+    text: String,
+    style: TextStyle,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier
+) {
+    AnimatedContent(
+        targetState = text,
+        transitionSpec = {
+            (slideInVertically(
+                animationSpec = spring(dampingRatio = 0.75f, stiffness = 380f),
+                initialOffsetY = { fullHeight -> fullHeight / 2 }
+            ) + fadeIn(animationSpec = spring(dampingRatio = 0.75f, stiffness = 380f)))
+            .togetherWith(
+                slideOutVertically(
+                    animationSpec = spring(dampingRatio = 0.75f, stiffness = 380f),
+                    targetOffsetY = { fullHeight -> -fullHeight / 2 }
+                ) + fadeOut(animationSpec = spring(dampingRatio = 0.75f, stiffness = 380f))
+            )
+        },
+        label = "odometerRollingText"
+    ) { targetText ->
+        Text(
+            text = targetText,
+            style = style,
+            color = color,
+            modifier = modifier
+        )
+    }
 }
 
 // ── ViewModel with Multi-Account Support ──────────────────────────────────────
@@ -138,12 +179,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val prefs = getApplication<Application>().dataStore.data.first()
         val accountsJson = prefs[SAVED_ACCOUNTS_KEY]
         val listType = object : TypeToken<List<SavedAccount>>() {}.type
-        var accounts: MutableList<SavedAccount> = if (!accountsJson.isNullOrEmpty()) {
+        var storedAccounts: MutableList<SavedAccount> = if (!accountsJson.isNullOrEmpty()) {
             try { gson.fromJson(accountsJson, listType) } catch (_: Exception) { mutableListOf() }
         } else mutableListOf()
 
-        // Legacy migration
-        if (accounts.isEmpty()) {
+        var needsMigration = false
+
+        // Legacy single-account migration
+        if (storedAccounts.isEmpty()) {
             val legacyOp = prefs[stringPreferencesKey("operator")]
             val legacyPass = prefs[stringPreferencesKey("password")]
             if (!legacyOp.isNullOrEmpty() && !legacyPass.isNullOrEmpty()) {
@@ -154,18 +197,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     password = legacyPass,
                     selectedLine = prefs[stringPreferencesKey("selected_line")]
                 )
-                accounts.add(legacyAcc)
-                getApplication<Application>().dataStore.edit { p ->
-                    p[SAVED_ACCOUNTS_KEY] = gson.toJson(accounts)
-                    p[ACTIVE_ACCOUNT_ID_KEY] = legacyAcc.id
-                }
+                storedAccounts.add(legacyAcc)
+                needsMigration = true
+            }
+        } else {
+            // Check if any stored account has an unencrypted password
+            if (storedAccounts.any { !CryptoManager.isEncrypted(it.password) && it.password.isNotEmpty() }) {
+                needsMigration = true
             }
         }
 
-        savedAccounts = accounts
-        activeAccountId = prefs[ACTIVE_ACCOUNT_ID_KEY] ?: accounts.firstOrNull()?.id
+        val decryptedAccounts = storedAccounts.toDecryptedFromStorage().toMutableList()
 
-        val activeAcc = accounts.find { it.id == activeAccountId } ?: accounts.firstOrNull()
+        if (needsMigration) {
+            getApplication<Application>().dataStore.edit { p ->
+                p[SAVED_ACCOUNTS_KEY] = gson.toJson(decryptedAccounts.toEncryptedForStorage())
+                if (decryptedAccounts.isNotEmpty()) {
+                    p[ACTIVE_ACCOUNT_ID_KEY] = prefs[ACTIVE_ACCOUNT_ID_KEY] ?: decryptedAccounts.first().id
+                }
+                // Purge legacy plaintext keys
+                p.remove(stringPreferencesKey("operator"))
+                p.remove(stringPreferencesKey("password"))
+                p.remove(stringPreferencesKey("email"))
+                p.remove(stringPreferencesKey("phone"))
+                p.remove(stringPreferencesKey("selected_line"))
+            }
+        }
+
+        savedAccounts = decryptedAccounts
+        activeAccountId = prefs[ACTIVE_ACCOUNT_ID_KEY] ?: decryptedAccounts.firstOrNull()?.id
+
+        val activeAcc = decryptedAccounts.find { it.id == activeAccountId } ?: decryptedAccounts.firstOrNull()
         if (activeAcc != null) {
             operator = activeAcc.operator
             email = activeAcc.email
@@ -173,7 +235,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             password = activeAcc.password
             consumptionData = activeAcc.cachedData
         }
-        TelecomLiveNotificationHelper.updateAll(getApplication(), accounts)
+        TelecomLiveNotificationHelper.updateAll(getApplication(), decryptedAccounts)
     }
 
     fun switchAccount(account: SavedAccount) {
@@ -205,7 +267,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.IO) {
             getApplication<Application>().dataStore.edit { p ->
-                p[SAVED_ACCOUNTS_KEY] = gson.toJson(updated)
+                p[SAVED_ACCOUNTS_KEY] = gson.toJson(updated.toEncryptedForStorage())
                 if (nextActive != null) {
                     p[ACTIVE_ACCOUNT_ID_KEY] = nextActive.id
                     if (nextActive.cachedData != null) {
@@ -236,7 +298,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.IO) {
             getApplication<Application>().dataStore.edit { p ->
-                p[SAVED_ACCOUNTS_KEY] = gson.toJson(updated)
+                p[SAVED_ACCOUNTS_KEY] = gson.toJson(updated.toEncryptedForStorage())
             }
             val target = updated.find { it.id == accountId }
             if (target != null) {
@@ -316,7 +378,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isAddAccountMode = false
 
                 getApplication<Application>().dataStore.edit { prefs ->
-                    prefs[SAVED_ACCOUNTS_KEY] = gson.toJson(updatedList)
+                    prefs[SAVED_ACCOUNTS_KEY] = gson.toJson(updatedList.toEncryptedForStorage())
                     prefs[ACTIVE_ACCOUNT_ID_KEY] = currentAccId
                     prefs[CACHED_DATA_KEY] = gson.toJson(data)
                     prefs[HTTP_COOKIES_KEY] = gson.toJson(client.currentCookies)
@@ -385,7 +447,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isAddAccountMode = false
 
                 getApplication<Application>().dataStore.edit { prefs ->
-                    prefs[SAVED_ACCOUNTS_KEY] = gson.toJson(updatedList)
+                    prefs[SAVED_ACCOUNTS_KEY] = gson.toJson(updatedList.toEncryptedForStorage())
                     prefs[ACTIVE_ACCOUNT_ID_KEY] = currentAccId
                     prefs[CACHED_DATA_KEY] = gson.toJson(data)
                     prefs[HTTP_COOKIES_KEY] = gson.toJson(client.currentCookies)
@@ -524,7 +586,7 @@ class MainActivity : ComponentActivity() {
                                             .padding(bottom = 32.dp, start = 24.dp, end = 24.dp),
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        Text("Select a Line", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.select_line), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                         multiLine.lines.forEach { line ->
                                             Button(
                                                 onClick = { viewModel.completeLineSelection(line) },
@@ -565,9 +627,9 @@ fun AppSidebarContent(
         AlertDialog(
             onDismissRequest = { accountToDelete = null },
             icon = { Icon(Lucide.Trash2, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Delete Account?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.delete_account_title), fontWeight = FontWeight.Bold) },
             text = {
-                Text("Are you sure you want to remove this ${acc.operator} account (${if (acc.phone.isNotEmpty()) acc.phone else acc.email})?")
+                Text(stringResource(R.string.delete_account_confirm, acc.operator, if (acc.phone.isNotEmpty()) acc.phone else acc.email))
             },
             confirmButton = {
                 TextButton(
@@ -577,12 +639,12 @@ fun AppSidebarContent(
                         if (target != null) onDeleteAccount(target)
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { accountToDelete = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
             shape = RoundedCornerShape(24.dp)
@@ -611,12 +673,12 @@ fun AppSidebarContent(
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "Telecom Accounts",
+                    text = stringResource(R.string.accounts_section),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${accounts.size} account${if (accounts.size > 1) "s" else ""} connected",
+                    text = stringResource(R.string.accounts_connected, accounts.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -631,6 +693,7 @@ fun AppSidebarContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val haptic = LocalHapticFeedback.current
             accounts.forEach { acc ->
                 val isActive = acc.id == activeAccountId
                 val bgColor by animateColorAsState(
@@ -649,7 +712,10 @@ fun AppSidebarContent(
                 )
 
                 Surface(
-                    onClick = { onAccountSelected(acc) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onAccountSelected(acc)
+                    },
                     interactionSource = itemInteractionSource,
                     shape = RoundedCornerShape(16.dp),
                     color = bgColor,
@@ -723,7 +789,7 @@ fun AppSidebarContent(
         ) {
             Icon(Lucide.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Add New Account", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.add_account), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -756,7 +822,7 @@ fun LoginScreen(
             },
             title = {
                 Text(
-                    "Privacy & Security",
+                    stringResource(R.string.privacy_security),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -773,9 +839,9 @@ fun LoginScreen(
                             Icon(Lucide.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("100% Local Storage", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.local_storage_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "Your credentials and session tokens are encrypted and saved strictly on this device. They are never sent to any third-party server.",
+                                stringResource(R.string.local_storage_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -792,9 +858,9 @@ fun LoginScreen(
                             Icon(Lucide.Globe, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Direct Connection", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.no_intermediary_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "All balance queries connect directly from your phone to your telecom operator's official customer portal.",
+                                stringResource(R.string.no_intermediary_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -811,9 +877,9 @@ fun LoginScreen(
                             Icon(Lucide.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Unofficial Utility", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.openSource_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "This application is an independent third-party tool and is not affiliated with or endorsed by Maroc Telecom, Orange, or Inwi.",
+                                stringResource(R.string.openSource_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -823,7 +889,7 @@ fun LoginScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showPrivacyDialog = false }) {
-                    Text("Got It", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.done), fontWeight = FontWeight.Bold)
                 }
             },
             shape = RoundedCornerShape(24.dp)
@@ -849,7 +915,7 @@ fun LoginScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = if (canCancel) "Add Account" else "Welcome",
+                        text = if (canCancel) stringResource(R.string.add_account_title) else stringResource(R.string.welcome),
                         style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -862,7 +928,7 @@ fun LoginScreen(
                     ) {
                         Icon(
                             Lucide.Info,
-                            contentDescription = "Privacy & Security Info",
+                            contentDescription = stringResource(R.string.privacy_security),
                             modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -870,14 +936,14 @@ fun LoginScreen(
                 }
                 if (canCancel) {
                     TextButton(onClick = onCancel, modifier = Modifier.bounceClick()) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("Operator", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.operator), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ExpressiveOperatorButtonGroup(
                 operators = operators,
                 selectedOperator = viewModel.operator,
@@ -887,7 +953,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Column(modifier = Modifier.fillMaxWidth()) {
-                val emailLabel = if (viewModel.operator == "Maroc Telecom") "Email" else "Phone / Email"
+                val emailLabel = if (viewModel.operator == "Maroc Telecom") stringResource(R.string.email) else stringResource(R.string.email_or_phone)
 
                 OutlinedTextField(
                     value = viewModel.email,
@@ -916,7 +982,7 @@ fun LoginScreen(
                             value = viewModel.phone,
                             onValueChange = { viewModel.phone = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Phone Number") },
+                            label = { Text(stringResource(R.string.phone)) },
                             leadingIcon = { Icon(Lucide.Phone, contentDescription = null, modifier = Modifier.size(20.dp)) },
                             shape = RoundedCornerShape(14.dp),
                             singleLine = true,
@@ -931,7 +997,7 @@ fun LoginScreen(
                     value = viewModel.password,
                     onValueChange = { viewModel.password = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Password") },
+                    label = { Text(stringResource(R.string.password)) },
                     leadingIcon = { Icon(Lucide.Lock, contentDescription = null, modifier = Modifier.size(20.dp)) },
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -1000,7 +1066,7 @@ fun LoginScreen(
                         )
                     } else {
                         Text(
-                            text = if (canCancel) "Connect Account" else "Log In",
+                            text = if (canCancel) stringResource(R.string.connect_account) else stringResource(R.string.log_in),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
@@ -1070,6 +1136,7 @@ fun ExpressiveOperatorButtonGroup(
     selectedOperator: String,
     onOperatorSelected: (String) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1120,7 +1187,12 @@ fun ExpressiveOperatorButtonGroup(
             )
 
             Surface(
-                onClick = { onOperatorSelected(op) },
+                onClick = {
+                    if (!isSelected) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onOperatorSelected(op)
+                    }
+                },
                 interactionSource = interactionSource,
                 shape = RoundedCornerShape(
                     topStart = cornerStart,
@@ -1160,15 +1232,16 @@ fun DashboardScreen(
     onOpenDrawer: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     var showDisconnectDialog by remember { mutableStateOf(false) }
 
     if (showDisconnectDialog) {
         AlertDialog(
             onDismissRequest = { showDisconnectDialog = false },
             icon = { Icon(Lucide.LogOut, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Disconnect Account?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.delete_account_title), fontWeight = FontWeight.Bold) },
             text = {
-                Text("Are you sure you want to disconnect from ${data.operator} (${data.phoneNumber})? You will need to enter your credentials again to reconnect.")
+                Text(stringResource(R.string.delete_account_confirm, data.operator, data.phoneNumber))
             },
             confirmButton = {
                 TextButton(
@@ -1177,24 +1250,36 @@ fun DashboardScreen(
                         viewModel.logout()
                     }
                 ) {
-                    Text("Disconnect", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDisconnectDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
             shape = RoundedCornerShape(24.dp)
         )
     }
 
+    val pullToRefreshState = rememberPullToRefreshState()
+    val pullOffset = if (viewModel.isRefreshing) {
+        56.dp
+    } else {
+        (pullToRefreshState.distanceFraction * 56.dp.value).dp.coerceAtMost(88.dp)
+    }
+    val animatedContentOffset by animateDpAsState(
+        targetValue = pullOffset,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 380f),
+        label = "pullToRefreshOffset"
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer, modifier = Modifier.bounceClick()) {
-                        Icon(Lucide.Menu, contentDescription = "Menu")
+                        Icon(Lucide.Menu, contentDescription = stringResource(R.string.accounts_section))
                     }
                 },
                 title = { Text(data.operator, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
@@ -1202,7 +1287,7 @@ fun DashboardScreen(
                     IconButton(onClick = {
                         context.startActivity(Intent(context, WidgetConfigActivity::class.java))
                     }, modifier = Modifier.bounceClick()) {
-                        Icon(Lucide.Settings, contentDescription = "Widget Settings")
+                        Icon(Lucide.Settings, contentDescription = stringResource(R.string.settings))
                     }
                     IconButton(onClick = { viewModel.login(manualRefresh = true) }, enabled = !viewModel.isRefreshing, modifier = Modifier.bounceClick()) {
                         if (viewModel.isRefreshing) {
@@ -1221,39 +1306,66 @@ fun DashboardScreen(
                                 trackStroke = thinStroke
                             )
                         } else {
-                            Icon(Lucide.RefreshCw, contentDescription = "Refresh")
+                            Icon(Lucide.RefreshCw, contentDescription = stringResource(R.string.refresh))
                         }
                     }
                     IconButton(onClick = { showDisconnectDialog = true }, modifier = Modifier.bounceClick()) {
-                        Icon(Lucide.LogOut, contentDescription = "Logout")
+                        Icon(Lucide.LogOut, contentDescription = stringResource(R.string.remove))
                     }
                 }
             )
         }
     ) { padding ->
         PullToRefreshBox(
+            state = pullToRefreshState,
             isRefreshing = viewModel.isRefreshing,
-            onRefresh = { viewModel.login(manualRefresh = true) },
+            onRefresh = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                viewModel.login(manualRefresh = true)
+            },
             modifier = Modifier.padding(padding).fillMaxSize(),
             indicator = {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 16.dp),
+                        .padding(top = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (viewModel.isRefreshing) {
-                        LoadingIndicator(
-                            modifier = Modifier.size(44.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    val isVisible = viewModel.isRefreshing || pullToRefreshState.distanceFraction > 0.08f
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(spring(dampingRatio = 0.8f, stiffness = 400f)) + scaleIn(spring(dampingRatio = 0.7f, stiffness = 350f), initialScale = 0.5f),
+                        exit = fadeOut(spring(dampingRatio = 0.8f, stiffness = 400f)) + scaleOut(spring(dampingRatio = 0.8f, stiffness = 400f), targetScale = 0.5f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            LoadingIndicator(
+                                modifier = Modifier.size(30.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
         ) {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val sleekWavyStroke = remember(density) {
+                androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = with(density) { 3.5.dp.toPx() },
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .graphicsLayer {
+                        translationY = animatedContentOffset.toPx()
+                    }
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -1299,8 +1411,8 @@ fun DashboardScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                                .size(42.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -1313,12 +1425,12 @@ fun DashboardScreen(
                             Spacer(modifier = Modifier.width(14.dp))
                             Column {
                                 Text(
-                                    "Live Status Notification",
+                                    stringResource(R.string.live_status_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "Keep live balance in status bar & lock screen",
+                                    stringResource(R.string.live_status_subtitle),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -1329,6 +1441,7 @@ fun DashboardScreen(
                         Switch(
                             checked = isEnabled,
                             onCheckedChange = { checked ->
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                     if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                         notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -1347,14 +1460,19 @@ fun DashboardScreen(
                 val internetDisplay = if (data.internetPercent != null) "${data.internetRemaining} (${data.internetPercent.toInt()}%)" else data.internetRemaining
                 val internetProgress = remember(data.internetRemaining, data.internetPercent) {
                     if (data.internetPercent != null) {
-                        (data.internetPercent / 100f).coerceIn(0.05f, 1f)
+                        (data.internetPercent / 100f).coerceIn(0f, 1f)
                     } else {
-                        val m = Regex("""(\d+(?:\.\d+)?)\s*(Go|Mo|MB|GB)""", RegexOption.IGNORE_CASE).find(data.internetRemaining)
-                        if (m != null) {
-                            val (num, unit) = m.destructured
-                            val v = num.toFloatOrNull() ?: 15f
-                            if (unit.uppercase().startsWith("G")) (v / 30f).coerceIn(0.05f, 1f) else (v / 1024f).coerceIn(0.05f, 1f)
-                        } else 0.5f
+                        val trimmed = data.internetRemaining.trim()
+                        if (trimmed.equals("N/A", ignoreCase = true) || trimmed.startsWith("0 ") || trimmed == "0" || trimmed.isEmpty()) {
+                            0f
+                        } else {
+                            val m = Regex("""(\d+(?:\.\d+)?)\s*(Go|Mo|MB|GB)""", RegexOption.IGNORE_CASE).find(data.internetRemaining)
+                            if (m != null) {
+                                val (num, unit) = m.destructured
+                                val v = num.toFloatOrNull() ?: 0f
+                                if (unit.uppercase().startsWith("G")) (v / 30f).coerceIn(0f, 1f) else (v / 1024f).coerceIn(0f, 1f)
+                            } else 0f
+                        }
                     }
                 }
                 val animatedInternet by animateFloatAsState(
@@ -1372,17 +1490,26 @@ fun DashboardScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Lucide.Globe, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Internet Data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.internet), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(internetDisplay, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
+                        AnimatedRollingText(
+                            text = internetDisplay,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                         
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LinearProgressIndicator(
+                        Spacer(modifier = Modifier.height(14.dp))
+                        LinearWavyProgressIndicator(
                             progress = { animatedInternet },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
                             color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            stroke = sleekWavyStroke,
+                            trackStroke = sleekWavyStroke,
+                            amplitude = { 0.2f },
+                            wavelength = 18.dp,
+                            waveSpeed = 4.dp
                         )
                     }
                 }
@@ -1391,14 +1518,25 @@ fun DashboardScreen(
                 val callsDisplay = if (data.callsPercent != null) "${data.callsRemaining} (${data.callsPercent.toInt()}%)" else data.callsRemaining
                 val callsProgress = remember(data.callsRemaining, data.callsPercent) {
                     if (data.callsPercent != null) {
-                        (data.callsPercent / 100f).coerceIn(0.05f, 1f)
+                        (data.callsPercent / 100f).coerceIn(0f, 1f)
                     } else {
-                        val m = Regex("""(\d+)\s*h\s*(\d+)\s*min""", RegexOption.IGNORE_CASE).find(data.callsRemaining)
-                        if (m != null) {
-                            val (h, min) = m.destructured
-                            val totalMin = (h.toIntOrNull() ?: 0) * 60 + (min.toIntOrNull() ?: 0)
-                            (totalMin / 300f).coerceIn(0.05f, 1f)
-                        } else 0.5f
+                        val trimmed = data.callsRemaining.trim()
+                        if (trimmed.equals("N/A", ignoreCase = true) || trimmed.startsWith("0 ") || trimmed == "0" || trimmed.isEmpty()) {
+                            0f
+                        } else {
+                            val m = Regex("""(\d+)\s*h\s*(\d+)\s*min""", RegexOption.IGNORE_CASE).find(data.callsRemaining)
+                            if (m != null) {
+                                val (h, min) = m.destructured
+                                val totalMin = (h.toIntOrNull() ?: 0) * 60 + (min.toIntOrNull() ?: 0)
+                                (totalMin / 300f).coerceIn(0f, 1f)
+                            } else {
+                                val minOnly = Regex("""(\d+)\s*min""", RegexOption.IGNORE_CASE).find(data.callsRemaining)
+                                if (minOnly != null) {
+                                    val mVal = minOnly.groupValues[1].toIntOrNull() ?: 0
+                                    (mVal / 300f).coerceIn(0f, 1f)
+                                } else 0f
+                            }
+                        }
                     }
                 }
                 val animatedCalls by animateFloatAsState(
@@ -1416,24 +1554,33 @@ fun DashboardScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Lucide.Phone, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Voice Calls", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.calls), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(callsDisplay, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
+                        AnimatedRollingText(
+                            text = callsDisplay,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LinearProgressIndicator(
+                        Spacer(modifier = Modifier.height(14.dp))
+                        LinearWavyProgressIndicator(
                             progress = { animatedCalls },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
                             color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            stroke = sleekWavyStroke,
+                            trackStroke = sleekWavyStroke,
+                            amplitude = { 0.2f },
+                            wavelength = 18.dp,
+                            waveSpeed = 4.dp
                         )
                     }
                 }
 
                 // Structured Details Breakdown
                 if (!data.structuredDetails.isNullOrEmpty()) {
-                    Text("Plan Breakdown", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.plan_details), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
                     Card(
                         modifier = Modifier.fillMaxWidth().bounceClick(),
                         shape = RoundedCornerShape(16.dp),

@@ -1,0 +1,83 @@
+<resources>
+    <string name="app_name">Telecom Widget</string>
+    <string name="cancel">ⵙⵔﺡ</string>
+    <string name="save">ⵃⴹⵓ</string>
+    <string name="done">ⵉⵎⴷⴰ</string>
+    <string name="continue_text">ⴹⴼⵕ</string>
+    <string name="add">ⵔⵏⵓ</string>
+    <string name="active">ⵉⵔⵎⴰⵏ</string>
+    <string name="remove">ⴽⴽⵙ ⴰⵎⵉⴹⴰⵏ</string>
+    <string name="delete">ⴽⴽⵙ</string>
+    <string name="delete_account_title">ⴽⴽⵙ ⴰⵎⵉⴹⴰⵏ?</string>
+    <string name="delete_account_confirm">ⵉⵙ ⵜⵔⵉⴷ ⴰⴷ ⵜⴽⴽⵙⴷ ⴰⵎⵉⴹⴰⵏ %1$s (%2$s)?</string>
+
+    <!-- Dashboard & Metrics -->
+    <string name="balance">ⴰⵙⵉⴹⵏ</string>
+    <string name="internet">ⵉⵏⵜⵉⵔⵏⵉⵜ</string>
+    <string name="calls">ⵜⵉⵖⵔⵉⵡⵉⵏ</string>
+    <string name="sms">ⵜⵓⵣⵉⵏⵉⵏ</string>
+    <string name="main_balance">ⴰⵙⵉⴹⵏ ⴰⵎⵇⵔⴰⵏ</string>
+    <string name="solde_recharge">ⴰⵙⵉⴹⵏ ⵏ ⵓⵙⵙⵉⴷⴼ</string>
+    <string name="plan_details">ⵜⴰⵙⴷⴷⴰⵔⵜ</string>
+    <string name="live_notification">ⴰⵙⵏⵖⵎⵙ ⵉⵎⵉⵔⴰⵡ</string>
+    <string name="live_status_title">ⴰⴷⴷⴰⴷ ⵏ ⵓⵙⵉⴹⵏ ⵉⵎⵉⵔⴰⵡ</string>
+    <string name="live_status_subtitle">ⴰⵙⴽⴰⵏ ⴳ ⵓⵙⵏⵖⵎⵙ ⴷ ⵓⴳⴷⵉⵍ ⵏ ⵓⵔⴳⴰⵢ</string>
+    <string name="settings">ⵉⵙⵖⴰⵍⵏ</string>
+    <string name="add_account">ⵔⵏⵓ ⴰⵎⵉⴹⴰⵏ</string>
+    <string name="refresh">ⵙⵎⴰⵢⵏⵓ</string>
+    <string name="last_updated">ⵉⵜⵜⵓⵙⵎⴰⵢⵏⴰ</string>
+    <string name="accounts_connected">%1$d ⵏ ⵉⵎⵉⴹⴰⵏⵏ</string>
+    <string name="select_line">ⵙⵜⵉ ⴰⵣⵔⵉⴳ</string>
+    <string name="no_consumption_data">ⵡⴰⵍⵓ ⵉⵙⴼⴽⴰ. ⵙⵙⵓⴷⵙ ⵙ ⵉⵣⴷⴰⵔ ⴰⴷ ⵜⵙⵎⴰⵢⵏⵓⴷ.</string>
+
+    <!-- Login -->
+    <string name="welcome">ⴰⵏⵙⵓⴼ</string>
+    <string name="welcome_subtitle">ⴹⴼⵕ ⴰⵙⵖⵍ ⵏ ⵡⴰⵏⵜⵉⵔⵏⵉⵜ ⴷ ⵜⵖⵔⵉⵡⵉⵏ</string>
+    <string name="add_account_title">ⵔⵏⵓ ⴰⵎⵉⴹⴰN</string>
+    <string name="add_account_subtitle">ⵔⵏⵓ ⴰⵙⵙⴰⵖ ⵏ ⵜⵉⵍⵉⴼⵓⵏ ⵢⴰⴹⵏ</string>
+    <string name="operator">ⴰⵎⵙⵙⵓⴷⵙ</string>
+    <string name="credentials">ⵉⵎⵙⴽⴰⵔⵏ</string>
+    <string name="email">ⵉⵎⴰⵢⵍ</string>
+    <string name="email_or_phone">ⵓⵟⵟⵓⵏ ⵏⵉⵖ ⵉⵎⴰⵢⵍ</string>
+    <string name="phone">ⵓⵟⵟⵓⵏ ⵏ ⵜⵉⵍⵉⴼⵓⵏ</string>
+    <string name="password">ⵜⴰⴳⵓⵔⵉ ⵏ ⵓⵣⵔⴰⵢ</string>
+    <string name="log_in">ⴽⵛⵎ</string>
+    <string name="connect_account">ⵙⵎⵓⵏ ⴰⵎⵉⴹⴰⵏ</string>
+    <string name="error_empty_credentials">ⵙⴽⵛⵎ ⵉⵎⴰⵢⵍ ⵏⵉⵖ ⵓⵟⵟⵓⵏ ⵏ ⵜⵉⵍⵉⴼⵓⵏ</string>
+    <string name="error_empty_password">ⵙⴽⵛⵎ ⵜⴰⴳⵓⵔⵉ ⵏ ⵓⵣⵔⴰⵢ</string>
+    <string name="login_failed">ⴰⵣⴳⴰⵍ ⴳ ⵓⴽⵛⴰⵎ. ⵙⵙⵏⵇⴷ ⵉⵙⴼⴽⴰ ⵏⵏⴽ.</string>
+
+    <!-- Privacy & Security -->
+    <string name="privacy_security">ⵜⵉⵏⴼⵔⵓⵜ ⴷ ⵜⵏⴼⵔⵉⵜ</string>
+    <string name="privacy_hero_subtitle">ⵎⴰⵏⵎⴽ ⵙ ⵉⵜⵜⵃⴹⵓ Telecom Widget ⵉⵙⴼⴽⴰ ⵏⵏⴽ.</string>
+    <string name="local_storage_title">ⴰⵙⵙⵏⴼⵔ ⴰⵏⴳⵔⴰⵡ ⴳ ⵡⴰⵍⵍⴰⵍ</string>
+    <string name="local_storage_desc">ⵜⵜⵓⴼⵔⴰⵏ ⵉⵎⵙⴽⴰⵔⵏ ⴳ Android Keystore ⴷ MasterKey AES-GCM.</string>
+    <string name="no_intermediary_title">ⵡⴰⵍⵓ ⵉⵎⵙⵙⵓⴷⴰⵙ ⵉⵏⴰⵎⵎⴰⵙⵏ</string>
+    <string name="no_intermediary_desc">ⴰⵣⴷⴰⵢ ⴰⵔ ⵉⵜⵜⵉⵍⵉ ⵙⵔⵉⴷ ⴳⵔ ⵡⴰⵍⵍⴰⵍ ⴷ ⵉⵎⵙⵙⵓⴷⴰⵙ ⵏ ⵜⵉⵍⵉⴽⵓⵎ.</string>
+    <string name="openSource_title">ⵉⵍⴻⵍⵍⵉ ⴷ ⵓⵕⵥⵉⵎ</string>
+    <string name="openSource_desc">ⴰⵙⵏⵙ ⴰⴷ ⵉⴳⴰ ⴰⵍⴻⵍⵍⵉ, ⵓⵔ ⵉⵇⵇⵉⵏ ⵖⵔ Maroc Telecom, Orange ⵏⵉⵖ Inwi.</string>
+
+    <!-- Settings & App Info -->
+    <string name="accounts_section">ⵉⵎⵉⴹⴰⵏⵏ</string>
+    <string name="security_section">ⵜⴰⵏⴼⵔⵓⵜ</string>
+    <string name="about_section">ⵖⴼ</string>
+    <string name="app_version">ⵜⵓⵏⵖⵉⵍⵜ ⵏ ⵓⵙⵏⵙ</string>
+    <string name="privacy_subtitle">ⴰⵙⵙⵏⴼⵔ ⴰⵏⴳⵔⴰⵡ ⴳ ⵡⴰⵍⵍⴰⵍ</string>
+
+    <!-- Widget Configuration -->
+    <string name="widget_settings">ⵉⵙⵖⴰⵍⵏ ⵏ ⵓⵡⵉⴷⵊⵉⵜ</string>
+    <string name="account">ⴰⵎⵉⴹⴰⵏ</string>
+    <string name="widget_appearance_section">ⴰⵥⵕⵓ</string>
+    <string name="widget_opacity">ⵜⴰⴼⴰⵡⵜ</string>
+    <string name="widget_tint">ⵉⴽⵯⵍⴰⵏ</string>
+    <string name="widget_tint_system">ⴰⵏⴳⵔⴰⵡ</string>
+    <string name="widget_tint_light">ⴰⵎⵥⵕⴰⵡ</string>
+    <string name="widget_tint_dark">ⴰⵎⴷⵍⴰⵙ</string>
+    <string name="widget_font">ⴰⵙⴽⴽⵉⵍ</string>
+    <string name="widget_font_one_ui">One UI Sans</string>
+    <string name="widget_font_google_sans">Google Sans Flex</string>
+    <string name="widget_show_extra_details">ⵙⴽⵏ ⵉⴼⵔⵓⵔⵉⵜⵏ ⵢⴰⴹⵏ</string>
+    <string name="widget_tap_action">ⵜⵉⴳⴰⵡⵜ ⵏ ⵓⴹⴼⴰⵕ</string>
+    <string name="tap_refresh">ⵙⵎⴰⵢⵏⵓ</string>
+    <string name="tap_app">ⵕⵥⵎ ⴰⵙⵏⵙ</string>
+</resources>

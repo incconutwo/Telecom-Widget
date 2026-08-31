@@ -9,6 +9,9 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.telecom.widget.dataStore
 import com.telecom.widget.glance.ConsumptionWidget
+import com.telecom.widget.security.CryptoManager
+import com.telecom.widget.security.toDecryptedFromStorage
+import com.telecom.widget.security.toEncryptedForStorage
 import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.flow.first
 
@@ -27,15 +30,16 @@ class ConsumptionSyncWorker(
             val prefs = applicationContext.dataStore.data.first()
             val accountsJson = prefs[SAVED_ACCOUNTS_KEY]
             val accountsListType = object : TypeToken<List<SavedAccount>>() {}.type
-            var accounts: MutableList<SavedAccount> = if (!accountsJson.isNullOrEmpty()) {
+            var rawAccounts: MutableList<SavedAccount> = if (!accountsJson.isNullOrEmpty()) {
                 try { gson.fromJson(accountsJson, accountsListType) } catch (_: Exception) { mutableListOf() }
             } else mutableListOf()
 
-            if (accounts.isEmpty()) {
+            var needsMigration = false
+            if (rawAccounts.isEmpty()) {
                 val operator = prefs[stringPreferencesKey("operator")]
                 val pass = prefs[stringPreferencesKey("password")]
                 if (!operator.isNullOrEmpty() && !pass.isNullOrEmpty()) {
-                    accounts.add(
+                    rawAccounts.add(
                         SavedAccount(
                             operator = operator,
                             email = prefs[stringPreferencesKey("email")] ?: "",
@@ -44,9 +48,13 @@ class ConsumptionSyncWorker(
                             selectedLine = prefs[stringPreferencesKey("selected_line")]
                         )
                     )
+                    needsMigration = true
                 }
+            } else if (rawAccounts.any { !CryptoManager.isEncrypted(it.password) && it.password.isNotEmpty() }) {
+                needsMigration = true
             }
 
+            val accounts = rawAccounts.toDecryptedFromStorage()
             if (accounts.isEmpty()) return Result.failure()
 
             val updatedAccounts = mutableListOf<SavedAccount>()
@@ -80,9 +88,16 @@ class ConsumptionSyncWorker(
             val activeAcc = updatedAccounts.find { it.id == activeId } ?: updatedAccounts.firstOrNull()
 
             applicationContext.dataStore.edit { p ->
-                p[SAVED_ACCOUNTS_KEY] = gson.toJson(updatedAccounts)
+                p[SAVED_ACCOUNTS_KEY] = gson.toJson(updatedAccounts.toEncryptedForStorage())
                 if (activeAcc?.cachedData != null) {
                     p[CACHED_DATA_KEY] = gson.toJson(activeAcc.cachedData)
+                }
+                if (needsMigration) {
+                    p.remove(stringPreferencesKey("operator"))
+                    p.remove(stringPreferencesKey("password"))
+                    p.remove(stringPreferencesKey("email"))
+                    p.remove(stringPreferencesKey("phone"))
+                    p.remove(stringPreferencesKey("selected_line"))
                 }
             }
 

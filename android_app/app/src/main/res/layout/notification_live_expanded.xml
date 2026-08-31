@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -42,7 +42,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Internet"
+                    android:text="@string/internet"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
 
@@ -78,7 +78,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Voice Calls"
+                    android:text="@string/calls"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
 
