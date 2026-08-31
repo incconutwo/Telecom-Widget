@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.description    = 'Native Telecom Activity & Widget Bridge for iOS'
   s.author         = 'Telecom Widget'
   s.homepage       = 'https://github.com/incconutwo/Telecom-Widget'
-  s.platforms      = { :ios => '16.1' }
+  s.platforms      = { :ios => '15.1' }
   s.source         = { :path => '.' }
   s.source_files   = 'ios/**/*.{h,m,mm,swift,hpp,cpp}'
   s.dependency 'ExpoModulesCore'
