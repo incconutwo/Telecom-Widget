@@ -14,5 +14,5 @@ module.exports = {
       "group.com.telecom.widget"
     ]
   },
-  deploymentTarget: "16.1"
+  deploymentTarget: "17.0"
 };

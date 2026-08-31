@@ -1263,15 +1263,31 @@ fun DashboardScreen(
     }
 
     val pullToRefreshState = rememberPullToRefreshState()
-    val pullOffset = if (viewModel.isRefreshing) {
-        56.dp
-    } else {
-        (pullToRefreshState.distanceFraction * 56.dp.value).dp.coerceAtMost(88.dp)
+
+    // ── M3 Expressive Rubber-Band Elastic Drag Physics ───────────────────────
+    val targetPullOffset = remember(pullToRefreshState.distanceFraction, viewModel.isRefreshing) {
+        if (viewModel.isRefreshing) {
+            72.dp
+        } else {
+            val fraction = pullToRefreshState.distanceFraction
+            if (fraction <= 0f) {
+                0.dp
+            } else {
+                // Exponential resistance curve (rubber-banding)
+                val maxDrag = 110f
+                val damped = maxDrag * (1f - kotlin.math.exp(-fraction * 0.7f))
+                damped.dp
+            }
+        }
     }
+
     val animatedContentOffset by animateDpAsState(
-        targetValue = pullOffset,
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = 380f),
-        label = "pullToRefreshOffset"
+        targetValue = targetPullOffset,
+        animationSpec = spring(
+            dampingRatio = 0.75f, // M3 Medium Bouncy damping
+            stiffness = 380f      // Responsive tactile recoil
+        ),
+        label = "m3ExpressivePullOffset"
     )
 
     Scaffold(
@@ -1289,7 +1305,11 @@ fun DashboardScreen(
                     }, modifier = Modifier.bounceClick()) {
                         Icon(Lucide.Settings, contentDescription = stringResource(R.string.settings))
                     }
-                    IconButton(onClick = { viewModel.login(manualRefresh = true) }, enabled = !viewModel.isRefreshing, modifier = Modifier.bounceClick()) {
+                    IconButton(
+                        onClick = { viewModel.login(manualRefresh = true) },
+                        enabled = !viewModel.isRefreshing,
+                        modifier = Modifier.bounceClick()
+                    ) {
                         if (viewModel.isRefreshing) {
                             val density = androidx.compose.ui.platform.LocalDensity.current
                             val thinStroke = remember(density) {
@@ -1323,31 +1343,42 @@ fun DashboardScreen(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.login(manualRefresh = true)
             },
-            modifier = Modifier.padding(padding).fillMaxSize(),
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
             indicator = {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val isVisible = viewModel.isRefreshing || pullToRefreshState.distanceFraction > 0.08f
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(spring(dampingRatio = 0.8f, stiffness = 400f)) + scaleIn(spring(dampingRatio = 0.7f, stiffness = 350f), initialScale = 0.5f),
-                        exit = fadeOut(spring(dampingRatio = 0.8f, stiffness = 400f)) + scaleOut(spring(dampingRatio = 0.8f, stiffness = 400f), targetScale = 0.5f)
+                val fraction = pullToRefreshState.distanceFraction
+                val isVisible = viewModel.isRefreshing || fraction > 0.05f
+
+                val indicatorScale by animateFloatAsState(
+                    targetValue = if (isVisible) (fraction.coerceIn(0.4f, 1f)) else 0f,
+                    animationSpec = spring(dampingRatio = 0.75f, stiffness = 400f),
+                    label = "indicatorScale"
+                )
+
+                val indicatorTranslationY by animateDpAsState(
+                    targetValue = if (viewModel.isRefreshing) 20.dp else (fraction * 28f).coerceAtMost(36f).dp,
+                    animationSpec = spring(dampingRatio = 0.75f, stiffness = 380f),
+                    label = "indicatorTranslationY"
+                )
+
+                if (isVisible) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .graphicsLayer {
+                                translationY = indicatorTranslationY.toPx()
+                                scaleX = indicatorScale
+                                scaleY = indicatorScale
+                                alpha = if (viewModel.isRefreshing) 1f else (fraction * 1.5f).coerceIn(0f, 1f)
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(46.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            LoadingIndicator(
-                                modifier = Modifier.size(30.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        // Official Standalone Morphing Shape Indicator
+                        LoadingIndicator(
+                            modifier = Modifier.size(42.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
@@ -1373,7 +1404,9 @@ fun DashboardScreen(
                 // Header Phone Number Card
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth().bounceClick(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bounceClick(),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
@@ -1394,7 +1427,9 @@ fun DashboardScreen(
                 }
 
                 Card(
-                    modifier = Modifier.fillMaxWidth().bounceClick(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bounceClick(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
@@ -1411,8 +1446,8 @@ fun DashboardScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                .size(42.dp)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                                    .size(42.dp)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -1482,7 +1517,9 @@ fun DashboardScreen(
                 )
 
                 Card(
-                    modifier = Modifier.fillMaxWidth().bounceClick(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bounceClick(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
@@ -1498,11 +1535,13 @@ fun DashboardScreen(
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        
+
                         Spacer(modifier = Modifier.height(14.dp))
                         LinearWavyProgressIndicator(
                             progress = { animatedInternet },
-                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             stroke = sleekWavyStroke,
@@ -1546,7 +1585,9 @@ fun DashboardScreen(
                 )
 
                 Card(
-                    modifier = Modifier.fillMaxWidth().bounceClick(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bounceClick(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
@@ -1566,7 +1607,9 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(14.dp))
                         LinearWavyProgressIndicator(
                             progress = { animatedCalls },
-                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             stroke = sleekWavyStroke,
@@ -1580,9 +1623,15 @@ fun DashboardScreen(
 
                 // Structured Details Breakdown
                 if (!data.structuredDetails.isNullOrEmpty()) {
-                    Text(stringResource(R.string.plan_details), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        stringResource(R.string.plan_details),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     Card(
-                        modifier = Modifier.fillMaxWidth().bounceClick(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bounceClick(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
