@@ -133,4 +133,13 @@ export class LiveActivityService {
       console.warn('Live Activity stop error:', e);
     }
   }
+
+  public static async checkDiagnosticState(): Promise<string> {
+    if (Platform.OS !== 'ios' || !TelecomActivity) return 'Not on iOS or module missing';
+    try {
+      return await TelecomActivity.checkDiagnosticState();
+    } catch (e: any) {
+      return `Error reading diagnostic state: ${e?.message ?? e}`;
+    }
+  }
 }

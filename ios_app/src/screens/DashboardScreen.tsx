@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Pressable,
   useColorScheme,
+  Alert,
 } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
@@ -228,7 +229,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
   const hasExtraCredit = Boolean(data.extraDetails && data.extraDetails.trim() !== '' && data.extraDetails !== '0.00 Dh');
 
-  return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -245,7 +245,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           >
             <SymbolView name="gearshape.fill" size={22} tintColor={colors.navBlue} />
           </Pressable>
-          <View>
+          <Pressable
+            onPress={async () => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              const log = await LiveActivityService.checkDiagnosticState();
+              Alert.alert('Storage Diagnostic', log);
+            }}
+            style={[styles.iconBtn, { backgroundColor: '#FF3B30', paddingHorizontal: 10, borderRadius: 8, marginLeft: 8 }]}
+            hitSlop={12}
+          >
+            <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>DIAGNOSTIC</Text>
+          </Pressable>
+          <View style={{ marginLeft: 8 }}>
             <View style={styles.carrierRow}>
               <Text style={[styles.topBarTitle, { color: colors.textPrimary }]}>
                 {data.operator}

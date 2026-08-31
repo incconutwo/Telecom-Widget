@@ -30,6 +30,7 @@ public struct TelecomWidgetEntry: TimelineEntry {
     public let mainBalance: String
     public let showBalance: Bool
     public let timestamp: Double
+    public let debugLog: String
 }
 
 // ─── AppIntent Timeline Provider for Dynamic Account Selection ───────────────
@@ -50,7 +51,8 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
             callsLabel: "Calls",
             mainBalance: "25.00 DH",
             showBalance: true,
-            timestamp: Date().timeIntervalSince1970
+            timestamp: Date().timeIntervalSince1970,
+            debugLog: "Placeholder"
         )
     }
 
@@ -65,15 +67,22 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
     }
 
     private func readAccountData(for configuration: SelectAccountIntent) -> TelecomWidgetEntry {
+        var log = ""
         let userDefaults = UserDefaults(suiteName: "group.com.telecom.widget")
+        log += "UD: \(userDefaults != nil ? "OK" : "NIL")\n"
+
         var activeId = userDefaults?.string(forKey: "active_account_id")
         var jsonString = userDefaults?.string(forKey: "all_accounts_data")
+        log += "UD_Act: \(activeId ?? "nil")\n"
+        log += "UD_Json: \(jsonString?.isEmpty == false ? "YES" : "NO")\n"
 
         let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget")
+        log += "URL: \(containerURL != nil ? "OK" : "NIL")\n"
 
         if jsonString == nil || jsonString?.isEmpty == true {
             if let container = containerURL {
                 let fileURL = container.appendingPathComponent("all_accounts.json")
+                log += "F_JsonEx: \(FileManager.default.fileExists(atPath: fileURL.path))\n"
                 jsonString = try? String(contentsOf: fileURL, encoding: .utf8)
             }
         }
@@ -81,6 +90,7 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
         if activeId == nil || activeId?.isEmpty == true {
             if let container = containerURL {
                 let fileURL = container.appendingPathComponent("active_account_id.txt")
+                log += "F_ActEx: \(FileManager.default.fileExists(atPath: fileURL.path))\n"
                 activeId = try? String(contentsOf: fileURL, encoding: .utf8)
             }
         }
@@ -103,23 +113,30 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
         }
 
         if let validJson = jsonString,
-           let data = validJson.data(using: .utf8),
-           let list = try? JSONDecoder().decode([AccountData].self, from: data),
-           let matched = list.first(where: { $0.id == targetAccountId }) ?? list.first {
-            return TelecomWidgetEntry(
-                date: Date(),
-                operatorName: matched.operatorName,
-                phoneNumber: matched.phone,
-                internetRemaining: matched.internetRemaining,
-                internetPercent: matched.internetPercent,
-                internetLabel: matched.internetLabel,
-                callsRemaining: matched.callsRemaining,
-                callsPercent: matched.callsPercent,
-                callsLabel: matched.callsLabel,
-                mainBalance: matched.mainBalance,
-                showBalance: showBalance,
-                timestamp: matched.timestamp
-            )
+           let data = validJson.data(using: .utf8) {
+           do {
+               let list = try JSONDecoder().decode([AccountData].self, from: data)
+               log += "Decoded: \(list.count) items\n"
+               if let matched = list.first(where: { $0.id == targetAccountId }) ?? list.first {
+                   return TelecomWidgetEntry(
+                       date: Date(),
+                       operatorName: matched.operatorName,
+                       phoneNumber: matched.phone,
+                       internetRemaining: matched.internetRemaining,
+                       internetPercent: matched.internetPercent,
+                       internetLabel: matched.internetLabel,
+                       callsRemaining: matched.callsRemaining,
+                       callsPercent: matched.callsPercent,
+                       callsLabel: matched.callsLabel,
+                       mainBalance: matched.mainBalance,
+                       showBalance: showBalance,
+                       timestamp: matched.timestamp,
+                       debugLog: log + "SUCCESS"
+                   )
+               }
+           } catch {
+               log += "Decode Err: \(error.localizedDescription)\n"
+           }
         }
 
         // Check fallback JSON file
@@ -149,8 +166,9 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
                     callsPercent: callsPercent,
                     callsLabel: callsLabel,
                     mainBalance: mainBalance,
-                    showBalance: showBalance,
-                    timestamp: timestamp
+                    showBalance: true,
+                    timestamp: timestamp,
+                    debugLog: log + "FALLBACK SUCCESS"
                 )
             }
         }
@@ -179,7 +197,8 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
             callsLabel: callsLabel,
             mainBalance: mainBalance,
             showBalance: showBalance,
-            timestamp: timestamp
+            timestamp: timestamp,
+            debugLog: log + "FAILED ALL"
         )
     }
 }
@@ -594,19 +613,14 @@ struct TelecomHomeScreenWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        let theme = CarrierTheme.from(operatorName: entry.operatorName)
-        let cleanPhone = entry.phoneNumber.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-        let deepLinkUrl = URL(string: "telecomwidget://account/\(cleanPhone)")
-
-        Group {
-            switch family {
-            case .systemSmall:
-                TelecomSmallWidgetView(entry: entry, theme: theme)
-            case .systemLarge:
-                TelecomLargeWidgetView(entry: entry, theme: theme)
-            default:
-                TelecomMediumWidgetView(entry: entry, theme: theme)
-            }
+        let deepLinkUrl = URL(string: "telecomwidget://debug")
+        
+        ScrollView {
+            Text(entry.debugLog)
+                .font(.system(size: 9, weight: .regular, design: .monospaced))
+                .foregroundColor(.red)
+                .multilineTextAlignment(.leading)
+                .padding()
         }
         .widgetURL(deepLinkUrl)
         .applyWidgetBackground(Color.black.opacity(0.88))

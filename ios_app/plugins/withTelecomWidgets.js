@@ -225,6 +225,36 @@ class TelecomActivityModule: NSObject {
     guard #available(iOS 16.1, *) else { resolve(false); return }
     resolve(!Activity<TelecomWidgetAttributes>.activities.isEmpty)
   }
+
+  @objc func checkDiagnosticState(
+    _ resolve: @escaping RCTPromiseResolveBlock,
+    reject: @escaping RCTPromiseRejectBlock
+  ) {
+    var log = "HOST APP STORAGE DIAGNOSTIC\n\n"
+    
+    // Check UserDefaults
+    let ud = UserDefaults(suiteName: "group.com.telecom.widget")
+    log += "1. UserDefaults (App Group):\n"
+    log += ud != nil ? "   ✅ INITIALIZED\n" : "   ❌ NULL/FAILED\n"
+    if let ud = ud {
+      let active = ud.string(forKey: "active_account_id") ?? "nil"
+      log += "   -> active_account_id: \(active)\n"
+    }
+
+    // Check File Container
+    log += "\n2. Shared File Container:\n"
+    let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget")
+    log += container != nil ? "   ✅ ACCESSIBLE\n" : "   ❌ NULL/FAILED\n"
+    
+    if let container = container {
+      let accountsPath = container.appendingPathComponent("all_accounts.json").path
+      let dataPath = container.appendingPathComponent("widget_data.json").path
+      log += "   -> all_accounts.json exists: \(FileManager.default.fileExists(atPath: accountsPath))\n"
+      log += "   -> widget_data.json exists: \(FileManager.default.fileExists(atPath: dataPath))\n"
+    }
+
+    resolve(log)
+  }
 }
 
 // MARK: - Shared UserDefaults & File Storage helper
@@ -280,6 +310,9 @@ RCT_EXTERN_METHOD(stopActivity:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(isActivityActive:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(checkDiagnosticState:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
 @end
