@@ -97,14 +97,23 @@ class TelecomActivityModule: NSObject {
     resolve: @escaping RCTPromiseResolveBlock,
     reject: @escaping RCTPromiseRejectBlock
   ) {
-    guard let ud = UserDefaults(suiteName: "group.com.telecom.widget") else {
-      reject("APP_GROUP_ERROR", "Cannot access App Group UserDefaults", nil)
-      return
-    }
     let dict = options as? [String: Any] ?? [:]
-    ud.set(dict["activeAccountId"] as? String ?? "", forKey: "active_account_id")
-    ud.set(dict["accountsJson"]    as? String ?? "[]", forKey: "all_accounts_data")
-    ud.synchronize()
+    let activeAccountId = dict["activeAccountId"] as? String ?? ""
+    let accountsJson    = dict["accountsJson"]    as? String ?? "[]"
+
+    if let ud = UserDefaults(suiteName: "group.com.telecom.widget") {
+      ud.set(activeAccountId, forKey: "active_account_id")
+      ud.set(accountsJson,    forKey: "all_accounts_data")
+      ud.synchronize()
+    }
+
+    if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+      let accountsFile = container.appendingPathComponent("all_accounts.json")
+      let activeFile   = container.appendingPathComponent("active_account_id.txt")
+      try? accountsJson.write(to: accountsFile, atomically: true, encoding: .utf8)
+      try? activeAccountId.write(to: activeFile, atomically: true, encoding: .utf8)
+    }
+
     if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
     resolve(["status": "synced"])
   }
@@ -218,24 +227,33 @@ class TelecomActivityModule: NSObject {
   }
 }
 
-// MARK: - Shared UserDefaults helper
+// MARK: - Shared UserDefaults & File Storage helper
 
 private func telecomSaveToUserDefaults(options: [String: Any]) {
-  guard let ud = UserDefaults(suiteName: "group.com.telecom.widget") else { return }
-  ud.set(options["operator"]          as? String ?? "Maroc Telecom", forKey: "widget_operator")
-  ud.set(options["phoneNumber"]       as? String ?? "",              forKey: "widget_phone")
-  ud.set(options["internetRemaining"] as? String ?? "0 Go",          forKey: "widget_internet")
-  ud.set(options["internetPercent"]   as? Double ?? 0.0,             forKey: "widget_internet_percent")
-  ud.set(options["internetLabel"]     as? String ?? "Internet",      forKey: "widget_internet_label")
-  ud.set(options["callsRemaining"]    as? String ?? "0h 00m",        forKey: "widget_calls")
-  ud.set(options["callsPercent"]      as? Double ?? 0.0,             forKey: "widget_calls_percent")
-  ud.set(options["callsLabel"]        as? String ?? "Calls",         forKey: "widget_calls_label")
-  ud.set(options["mainBalance"]       as? String ?? "",              forKey: "widget_main_balance")
-  ud.set(
-    options["timestamp"] as? Double ?? Date().timeIntervalSince1970,
-    forKey: "widget_timestamp"
-  )
-  ud.synchronize()
+  if let ud = UserDefaults(suiteName: "group.com.telecom.widget") {
+    ud.set(options["operator"]          as? String ?? "Maroc Telecom", forKey: "widget_operator")
+    ud.set(options["phoneNumber"]       as? String ?? "",              forKey: "widget_phone")
+    ud.set(options["internetRemaining"] as? String ?? "0 Go",          forKey: "widget_internet")
+    ud.set(options["internetPercent"]   as? Double ?? 0.0,             forKey: "widget_internet_percent")
+    ud.set(options["internetLabel"]     as? String ?? "Internet",      forKey: "widget_internet_label")
+    ud.set(options["callsRemaining"]    as? String ?? "0h 00m",        forKey: "widget_calls")
+    ud.set(options["callsPercent"]      as? Double ?? 0.0,             forKey: "widget_calls_percent")
+    ud.set(options["callsLabel"]        as? String ?? "Calls",         forKey: "widget_calls_label")
+    ud.set(options["mainBalance"]       as? String ?? "",              forKey: "widget_main_balance")
+    ud.set(
+      options["timestamp"] as? Double ?? Date().timeIntervalSince1970,
+      forKey: "widget_timestamp"
+    )
+    ud.synchronize()
+  }
+
+  if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+    let widgetDataFile = container.appendingPathComponent("widget_data.json")
+    if let jsonData = try? JSONSerialization.data(withJSONObject: options, options: [.prettyPrinted]) {
+      try? jsonData.write(to: widgetDataFile, options: [.atomic])
+    }
+  }
+
   if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
 }
 `;

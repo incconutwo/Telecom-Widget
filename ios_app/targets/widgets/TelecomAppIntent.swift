@@ -43,14 +43,30 @@ public struct TelecomAccountQuery: EntityQuery {
     public func defaultResult() async -> TelecomAccountEntity? {
         let all = fetchAllAccounts()
         let userDefaults = UserDefaults(suiteName: "group.com.telecom.widget")
-        let activeId = userDefaults?.string(forKey: "active_account_id")
+        var activeId = userDefaults?.string(forKey: "active_account_id")
+        if activeId == nil || activeId?.isEmpty == true {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+                let fileURL = container.appendingPathComponent("active_account_id.txt")
+                activeId = try? String(contentsOf: fileURL, encoding: .utf8)
+            }
+        }
         return all.first(where: { $0.id == activeId }) ?? all.first
     }
 
     private func fetchAllAccounts() -> [TelecomAccountEntity] {
+        var jsonString: String? = nil
         let userDefaults = UserDefaults(suiteName: "group.com.telecom.widget")
-        guard let jsonString = userDefaults?.string(forKey: "all_accounts_data"),
-              let data = jsonString.data(using: .utf8) else {
+        jsonString = userDefaults?.string(forKey: "all_accounts_data")
+
+        if jsonString == nil || jsonString?.isEmpty == true {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+                let fileURL = container.appendingPathComponent("all_accounts.json")
+                jsonString = try? String(contentsOf: fileURL, encoding: .utf8)
+            }
+        }
+
+        guard let validJson = jsonString,
+              let data = validJson.data(using: .utf8) else {
             return []
         }
 

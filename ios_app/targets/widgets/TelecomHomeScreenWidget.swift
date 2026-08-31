@@ -66,7 +66,26 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
 
     private func readAccountData(for configuration: SelectAccountIntent) -> TelecomWidgetEntry {
         let userDefaults = UserDefaults(suiteName: "group.com.telecom.widget")
-        let targetAccountId = configuration.account?.id ?? userDefaults?.string(forKey: "active_account_id")
+        var activeId = userDefaults?.string(forKey: "active_account_id")
+        var jsonString = userDefaults?.string(forKey: "all_accounts_data")
+
+        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget")
+
+        if jsonString == nil || jsonString?.isEmpty == true {
+            if let container = containerURL {
+                let fileURL = container.appendingPathComponent("all_accounts.json")
+                jsonString = try? String(contentsOf: fileURL, encoding: .utf8)
+            }
+        }
+
+        if activeId == nil || activeId?.isEmpty == true {
+            if let container = containerURL {
+                let fileURL = container.appendingPathComponent("active_account_id.txt")
+                activeId = try? String(contentsOf: fileURL, encoding: .utf8)
+            }
+        }
+
+        let targetAccountId = configuration.account?.id ?? activeId
         let showBalance = configuration.showBalance
 
         struct AccountData: Codable {
@@ -83,8 +102,8 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
             let timestamp: Double
         }
 
-        if let jsonString = userDefaults?.string(forKey: "all_accounts_data"),
-           let data = jsonString.data(using: .utf8),
+        if let validJson = jsonString,
+           let data = validJson.data(using: .utf8),
            let list = try? JSONDecoder().decode([AccountData].self, from: data),
            let matched = list.first(where: { $0.id == targetAccountId }) ?? list.first {
             return TelecomWidgetEntry(
@@ -103,7 +122,40 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
             )
         }
 
-        // Fallback to active single account fields
+        // Check fallback JSON file
+        if let container = containerURL {
+            let widgetDataFile = container.appendingPathComponent("widget_data.json")
+            if let data = try? Data(contentsOf: widgetDataFile),
+               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let op = dict["operator"] as? String ?? "Maroc Telecom"
+                let phone = dict["phoneNumber"] as? String ?? ""
+                let internet = dict["internetRemaining"] as? String ?? "0 Go"
+                let internetPercent = dict["internetPercent"] as? Double ?? 0.0
+                let internetLabel = dict["internetLabel"] as? String ?? "Internet"
+                let calls = dict["callsRemaining"] as? String ?? "0h 00m"
+                let callsPercent = dict["callsPercent"] as? Double ?? 0.0
+                let callsLabel = dict["callsLabel"] as? String ?? "Calls"
+                let mainBalance = dict["mainBalance"] as? String ?? ""
+                let timestamp = dict["timestamp"] as? Double ?? Date().timeIntervalSince1970
+
+                return TelecomWidgetEntry(
+                    date: Date(),
+                    operatorName: op,
+                    phoneNumber: phone,
+                    internetRemaining: internet,
+                    internetPercent: internetPercent,
+                    internetLabel: internetLabel,
+                    callsRemaining: calls,
+                    callsPercent: callsPercent,
+                    callsLabel: callsLabel,
+                    mainBalance: mainBalance,
+                    showBalance: showBalance,
+                    timestamp: timestamp
+                )
+            }
+        }
+
+        // Fallback to active single account fields in UserDefaults
         let op = userDefaults?.string(forKey: "widget_operator") ?? "Maroc Telecom"
         let phone = userDefaults?.string(forKey: "widget_phone") ?? ""
         let internet = userDefaults?.string(forKey: "widget_internet") ?? "0 Go"

@@ -38,6 +38,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   const colorScheme = useColorScheme();
   const isDark = colorScheme !== 'light';
 
+  // Automatically sync widget data and accounts on mount and on account update
+  React.useEffect(() => {
+    if (account?.cachedData) {
+      LiveActivityService.updateWidgetData(account);
+      LiveActivityService.syncAllAccounts([account], account.id);
+    }
+  }, [account]);
+
   // Carrier-Specific Brand Accents
   const getCarrierTheme = (operator: string) => {
     switch (operator) {

@@ -415,7 +415,8 @@ class ConsumptionWidget : GlanceAppWidget() {
             // Main 2 Big Stat Cards Side by Side (Internet & Calls)
             Row(modifier = GlanceModifier.fillMaxWidth()) {
                 val internetDisplay = if (data.internetPercent != null) "${data.internetRemaining} (${data.internetPercent.toInt()}%)" else data.internetRemaining
-                val callsDisplay = if (data.callsPercent != null) "${data.callsRemaining} (${data.callsPercent.toInt()}%)" else data.callsRemaining
+                val cleanCalls = formatCompactCalls(data.callsRemaining)
+                val callsDisplay = if (data.callsPercent != null) "$cleanCalls (${data.callsPercent.toInt()}%)" else cleanCalls
 
                 // Internet Card
                 Column(
@@ -436,13 +437,15 @@ class ConsumptionWidget : GlanceAppWidget() {
                         Spacer(modifier = GlanceModifier.width(6.dp))
                         Text(
                             text = context.getString(R.string.internet),
+                            maxLines = 1,
                             style = TextStyle(color = onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         )
                     }
                     Spacer(modifier = GlanceModifier.height(6.dp))
                     Text(
                         text = internetDisplay,
-                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 21.sp)
+                        maxLines = 1,
+                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     )
                 }
 
@@ -467,13 +470,15 @@ class ConsumptionWidget : GlanceAppWidget() {
                         Spacer(modifier = GlanceModifier.width(6.dp))
                         Text(
                             text = context.getString(R.string.calls),
+                            maxLines = 1,
                             style = TextStyle(color = onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         )
                     }
                     Spacer(modifier = GlanceModifier.height(6.dp))
                     Text(
                         text = callsDisplay,
-                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 21.sp)
+                        maxLines = 1,
+                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     )
                 }
             }
@@ -555,11 +560,13 @@ class ConsumptionWidget : GlanceAppWidget() {
     @Composable
     private fun CompactLayout(data: ConsumptionData, primary: ColorProvider, onSurface: ColorProvider, onSurfaceVariant: ColorProvider, context: Context) {
         val internetDisplay = if (data.internetPercent != null) "${data.internetRemaining} (${data.internetPercent.toInt()}%)" else data.internetRemaining
-        val callsDisplay = if (data.callsPercent != null) "${data.callsRemaining} (${data.callsPercent.toInt()}%)" else data.callsRemaining
+        val cleanCalls = formatCompactCalls(data.callsRemaining)
+        val callsDisplay = if (data.callsPercent != null) "$cleanCalls (${data.callsPercent.toInt()}%)" else cleanCalls
 
         Column(modifier = GlanceModifier.fillMaxSize()) {
             Text(
                 text = data.operator,
+                maxLines = 1,
                 style = TextStyle(color = primary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             )
             Spacer(modifier = GlanceModifier.height(6.dp))
@@ -571,11 +578,12 @@ class ConsumptionWidget : GlanceAppWidget() {
                     colorFilter = ColorFilter.tint(onSurfaceVariant)
                 )
                 Spacer(modifier = GlanceModifier.width(4.dp))
-                Text(text = context.getString(R.string.internet), style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
+                Text(text = context.getString(R.string.internet), maxLines = 1, style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
             }
             Text(
                 text = internetDisplay,
-                style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                maxLines = 1,
+                style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             )
             Spacer(modifier = GlanceModifier.height(5.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -586,11 +594,12 @@ class ConsumptionWidget : GlanceAppWidget() {
                     colorFilter = ColorFilter.tint(onSurfaceVariant)
                 )
                 Spacer(modifier = GlanceModifier.width(4.dp))
-                Text(text = context.getString(R.string.calls), style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
+                Text(text = context.getString(R.string.calls), maxLines = 1, style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp))
             }
             Text(
                 text = callsDisplay,
-                style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                maxLines = 1,
+                style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             )
         }
     }
@@ -619,7 +628,8 @@ class ConsumptionWidget : GlanceAppWidget() {
         }
 
         val internetDisplay = if (data.internetPercent != null) "${data.internetRemaining} (${data.internetPercent.toInt()}%)" else data.internetRemaining
-        val callsDisplay = if (data.callsPercent != null) "${data.callsRemaining} (${data.callsPercent.toInt()}%)" else data.callsRemaining
+        val cleanCalls = formatCompactCalls(data.callsRemaining)
+        val callsDisplay = if (data.callsPercent != null) "$cleanCalls (${data.callsPercent.toInt()}%)" else cleanCalls
 
         Column(modifier = GlanceModifier.fillMaxSize()) {
             // Header: Operator + Phone on Left, Actions on Right
@@ -720,7 +730,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                     Text(
                         text = internetDisplay,
                         maxLines = 1,
-                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     )
                 }
                 Column(modifier = GlanceModifier.defaultWeight()) {
@@ -741,7 +751,7 @@ class ConsumptionWidget : GlanceAppWidget() {
                     Text(
                         text = callsDisplay,
                         maxLines = 1,
-                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        style = TextStyle(color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     )
                 }
             }
@@ -773,14 +783,19 @@ class ConsumptionWidget : GlanceAppWidget() {
     }
 
     private fun formatCompactCalls(calls: String): String {
-        val res = calls.replace(Regex("""\s*\d+\s*(?:s|sec|secondes?)\b""", RegexOption.IGNORE_CASE), "").trim()
-        val normalized = if (res.count { it == ':' } == 2) res.substringBeforeLast(':') else res
+        val trimmed = calls.trim()
+        if (trimmed.isEmpty() || trimmed.equals("N/A", ignoreCase = true)) return "0h"
+        if (trimmed.contains("illimit", ignoreCase = true)) return trimmed
+
+        val res = trimmed.replace(Regex("""\s*\d+\s*(?:s|sec|secondes?)\b""", RegexOption.IGNORE_CASE), "").trim()
+        val normalized = if (res.count { it == ':' } >= 2) res.substringBeforeLast(':') else res
 
         val m = Regex("""0*(\d+)\s*[hH]\s*0*(\d+)\s*(?:min|m)?""", RegexOption.IGNORE_CASE).find(normalized)
         if (m != null) {
             val h = m.groupValues[1].toIntOrNull() ?: 0
             val mins = m.groupValues[2].toIntOrNull() ?: 0
             return when {
+                h == 0 && mins == 0 -> "0h"
                 h == 0 -> "${mins}min"
                 mins == 0 -> "${h}h"
                 else -> "${h}h ${mins}m"
@@ -791,12 +806,23 @@ class ConsumptionWidget : GlanceAppWidget() {
             val h = m2.groupValues[1].toIntOrNull() ?: 0
             val mins = m2.groupValues[2].toIntOrNull() ?: 0
             return when {
+                h == 0 && mins == 0 -> "0h"
                 h == 0 -> "${mins}min"
                 mins == 0 -> "${h}h"
                 else -> "${h}h ${mins}m"
             }
         }
-        return normalized
+        val mHOnly = Regex("""0*(\d+)\s*[hH]\b""", RegexOption.IGNORE_CASE).find(normalized)
+        if (mHOnly != null) {
+            val h = mHOnly.groupValues[1].toIntOrNull() ?: 0
+            return "${h}h"
+        }
+        val mMinOnly = Regex("""0*(\d+)\s*(?:min|m)\b""", RegexOption.IGNORE_CASE).find(normalized)
+        if (mMinOnly != null) {
+            val mins = mMinOnly.groupValues[1].toIntOrNull() ?: 0
+            return "${mins}min"
+        }
+        return normalized.ifEmpty { calls }
     }
 
     private fun formatShortOperator(op: String): String {
