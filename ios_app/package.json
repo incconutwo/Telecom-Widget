@@ -10,7 +10,6 @@
     "android": "expo start --android"
   },
   "dependencies": {
-    "telecom-activity": "file:./modules/telecom-activity",
     "@bacons/apple-targets": "^5.0.0",
     "@bottom-tabs/react-navigation": "^1.4.0",
     "@react-native-community/datetimepicker": "8.4.4",

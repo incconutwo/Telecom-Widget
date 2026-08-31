@@ -1,8 +1,11 @@
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import { SavedAccount } from '../types';
 import { formatPhoneNumber, formatCallsDisplay } from '../utils/formatters';
 import { t } from '../utils/i18n';
-import TelecomActivity from '../../modules/telecom-activity';
+
+// Registered via @objc(TelecomActivityModule) + RCT_EXTERN_MODULE in the iOS
+// main app target. Always resolves at runtime — no Expo autolinking needed.
+const TelecomActivity: any = Platform.OS === 'ios' ? NativeModules.TelecomActivityModule : null;
 
 export class LiveActivityService {
   private static buildPayload(account: SavedAccount) {
@@ -58,16 +61,14 @@ export class LiveActivityService {
   }
 
   public static async updateWidgetData(account: SavedAccount): Promise<void> {
-    if (Platform.OS !== 'ios' || !account.cachedData) return;
+    if (Platform.OS !== 'ios' || !account.cachedData || !TelecomActivity) return;
     const payload = this.buildPayload(account);
     if (!payload) return;
 
-    if (TelecomActivity?.updateWidgetData) {
-      try {
-        await TelecomActivity.updateWidgetData(payload);
-      } catch (e) {
-        console.warn('Home Screen Widget updateWidgetData error:', e);
-      }
+    try {
+      await TelecomActivity.updateWidgetData(payload);
+    } catch (e) {
+      console.warn('Widget updateWidgetData error:', e);
     }
   }
 
@@ -75,7 +76,7 @@ export class LiveActivityService {
     accounts: SavedAccount[],
     activeAccountId: string | null
   ): Promise<void> {
-    if (Platform.OS !== 'ios' || accounts.length === 0) return;
+    if (Platform.OS !== 'ios' || accounts.length === 0 || !TelecomActivity) return;
 
     const accountsData = accounts.map((acc) => {
       const payload = this.buildPayload(acc);
@@ -99,43 +100,37 @@ export class LiveActivityService {
       await this.updateWidgetData(active);
     }
 
-    if (TelecomActivity?.syncAllAccounts) {
-      try {
-        await TelecomActivity.syncAllAccounts({
-          activeAccountId: activeAccountId || accounts[0]?.id || '',
-          accountsJson: JSON.stringify(accountsData),
-        });
-      } catch (e) {
-        console.warn('Home Screen Widget syncAllAccounts error:', e);
-      }
+    try {
+      await TelecomActivity.syncAllAccounts({
+        activeAccountId: activeAccountId || accounts[0]?.id || '',
+        accountsJson: JSON.stringify(accountsData),
+      });
+    } catch (e) {
+      console.warn('Widget syncAllAccounts error:', e);
     }
   }
 
   public static async startOrUpdateLiveActivity(account: SavedAccount): Promise<void> {
-    if (Platform.OS !== 'ios' || !account.cachedData) return;
+    if (Platform.OS !== 'ios' || !account.cachedData || !TelecomActivity) return;
     const payload = this.buildPayload(account);
     if (!payload) return;
 
     // Always keep Home Screen widgets updated
     await this.updateWidgetData(account);
 
-    if (TelecomActivity?.startOrUpdateActivity) {
-      try {
-        await TelecomActivity.startOrUpdateActivity(payload);
-      } catch (e) {
-        console.warn('Live Activity startOrUpdateActivity error:', e);
-      }
+    try {
+      await TelecomActivity.startOrUpdateActivity(payload);
+    } catch (e: any) {
+      console.warn('Live Activity startOrUpdateActivity error:', e?.message ?? e);
     }
   }
 
   public static async stopLiveActivity(): Promise<void> {
-    if (Platform.OS !== 'ios') return;
-    if (TelecomActivity?.stopActivity) {
-      try {
-        await TelecomActivity.stopActivity();
-      } catch (e) {
-        console.warn('Live Activity stop error:', e);
-      }
+    if (Platform.OS !== 'ios' || !TelecomActivity) return;
+    try {
+      await TelecomActivity.stopActivity();
+    } catch (e) {
+      console.warn('Live Activity stop error:', e);
     }
   }
 }
