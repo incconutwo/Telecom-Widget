@@ -1,6 +1,4 @@
-const { withInfoPlist, withEntitlementsPlist, withDangerousMod, withXcodeProject } = require('@expo/config-plugins');
-const fs = require('fs');
-const path = require('path');
+const { withInfoPlist, withEntitlementsPlist } = require('@expo/config-plugins');
 
 const withTelecomWidgets = (config) => {
   // 1. Configure Entitlements with App Groups
@@ -15,77 +13,6 @@ const withTelecomWidgets = (config) => {
   config = withInfoPlist(config, (config) => {
     config.modResults['NSSupportsLiveActivities'] = true;
     config.modResults['NSSupportsLiveActivitiesFrequentUpdates'] = true;
-    return config;
-  });
-
-  // 3. Inject Native Swift Module Files & Podfile configuration
-  config = withDangerousMod(config, [
-    'ios',
-    async (config) => {
-      const iosRoot = config.modRequest.platformProjectRoot;
-      const projectName = config.modRequest.projectName || 'telecomwidget';
-      const projectDir = path.join(iosRoot, projectName);
-
-      // Copy native module bridge files to main app target directory
-      const nativeModulesSrc = path.join(config.modRequest.projectRoot, 'native_modules');
-      if (fs.existsSync(nativeModulesSrc) && fs.existsSync(projectDir)) {
-        const files = fs.readdirSync(nativeModulesSrc);
-        for (const file of files) {
-          fs.copyFileSync(path.join(nativeModulesSrc, file), path.join(projectDir, file));
-        }
-      }
-
-      // Copy TelecomWidgetAttributes.swift into Main App so ActivityKit finds attributes in main target scope
-      const attributesSrc = path.join(config.modRequest.projectRoot, 'targets', 'widgets', 'TelecomWidgetAttributes.swift');
-      if (fs.existsSync(attributesSrc) && fs.existsSync(projectDir)) {
-        fs.copyFileSync(attributesSrc, path.join(projectDir, 'TelecomWidgetAttributes.swift'));
-      }
-
-      // Configure Podfile for Swift compilation & Live Activities
-      const podfilePath = path.join(iosRoot, 'Podfile');
-      if (fs.existsSync(podfilePath)) {
-        let content = fs.readFileSync(podfilePath, 'utf8');
-        const patch = `
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |config|
-        config.build_settings['SWIFT_EMIT_MODULE_INTERFACE'] = 'NO'
-        config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
-        config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
-      end
-    end
-`;
-        if (!content.includes('SWIFT_EMIT_MODULE_INTERFACE')) {
-          content = content.replace(
-            /post_install do \|installer\|/,
-            `post_install do |installer|${patch}`
-          );
-          fs.writeFileSync(podfilePath, content, 'utf8');
-        }
-      }
-      return config;
-    },
-  ]);
-
-  // 4. Add Native Module Bridge Source Files to Main App Target in Xcode Project
-  config = withXcodeProject(config, (config) => {
-    const xcodeProject = config.modResults;
-    const projectName = config.modRequest.projectName || 'telecomwidget';
-
-    const targetUuid = xcodeProject.getFirstTarget().uuid;
-    const groupKey = xcodeProject.findPBXGroupKey({ name: projectName });
-
-    const sourceFiles = [
-      'TelecomActivityModule.swift',
-      'TelecomActivityModule.m',
-      'TelecomWidgetAttributes.swift',
-    ];
-
-    sourceFiles.forEach((file) => {
-      if (!xcodeProject.hasFile(file)) {
-        xcodeProject.addSourceFile(file, { target: targetUuid }, groupKey);
-      }
-    });
-
     return config;
   });
 

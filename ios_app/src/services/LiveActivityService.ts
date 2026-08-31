@@ -1,9 +1,8 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { SavedAccount } from '../types';
 import { formatPhoneNumber, formatCallsDisplay } from '../utils/formatters';
 import { t } from '../utils/i18n';
-
-const { TelecomActivityModule } = NativeModules;
+import TelecomActivity from '../../modules/telecom-activity';
 
 export class LiveActivityService {
   private static buildPayload(account: SavedAccount) {
@@ -63,9 +62,9 @@ export class LiveActivityService {
     const payload = this.buildPayload(account);
     if (!payload) return;
 
-    if (TelecomActivityModule?.updateWidgetData) {
+    if (TelecomActivity?.updateWidgetData) {
       try {
-        await TelecomActivityModule.updateWidgetData(payload);
+        await TelecomActivity.updateWidgetData(payload);
       } catch (e) {
         console.warn('Home Screen Widget updateWidgetData error:', e);
       }
@@ -100,9 +99,9 @@ export class LiveActivityService {
       await this.updateWidgetData(active);
     }
 
-    if (TelecomActivityModule?.syncAllAccounts) {
+    if (TelecomActivity?.syncAllAccounts) {
       try {
-        await TelecomActivityModule.syncAllAccounts({
+        await TelecomActivity.syncAllAccounts({
           activeAccountId: activeAccountId || accounts[0]?.id || '',
           accountsJson: JSON.stringify(accountsData),
         });
@@ -120,26 +119,20 @@ export class LiveActivityService {
     // Always keep Home Screen widgets updated
     await this.updateWidgetData(account);
 
-    if (TelecomActivityModule?.startOrUpdateActivity) {
+    if (TelecomActivity?.startOrUpdateActivity) {
       try {
-        await TelecomActivityModule.startOrUpdateActivity(payload);
+        await TelecomActivity.startOrUpdateActivity(payload);
       } catch (e) {
         console.warn('Live Activity startOrUpdateActivity error:', e);
-      }
-    } else if (TelecomActivityModule?.updateActivity) {
-      try {
-        await TelecomActivityModule.updateActivity(payload);
-      } catch (e) {
-        console.warn('Live Activity updateActivity error:', e);
       }
     }
   }
 
   public static async stopLiveActivity(): Promise<void> {
     if (Platform.OS !== 'ios') return;
-    if (TelecomActivityModule?.stopActivity) {
+    if (TelecomActivity?.stopActivity) {
       try {
-        await TelecomActivityModule.stopActivity();
+        await TelecomActivity.stopActivity();
       } catch (e) {
         console.warn('Live Activity stop error:', e);
       }
