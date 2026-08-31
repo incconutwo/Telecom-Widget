@@ -40,12 +40,30 @@ public struct TelecomAccountQuery: EntityQuery {
         return fetchAllAccounts()
     }
 
+    // Helper to dynamically find the App Group from the signed provisioning profile (Crucial for AltStore)
+    private func getAppGroup() -> String {
+        // Fallback default
+        let defaultGroup = "group.com.telecom.widget"
+        guard let provisionPath = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
+              let provisionString = try? String(contentsOfFile: provisionPath, encoding: .isoLatin1) else { return defaultGroup }
+        guard let startRange = provisionString.range(of: "<?xml"),
+              let endRange = provisionString.range(of: "</plist>") else { return defaultGroup }
+        let xmlString = String(provisionString[startRange.lowerBound..<endRange.upperBound])
+        guard let data = xmlString.data(using: .utf8),
+              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+              let entitlements = plist["Entitlements"] as? [String: Any],
+              let appGroups = entitlements["com.apple.security.application-groups"] as? [String],
+              let firstGroup = appGroups.first else { return defaultGroup }
+        return firstGroup
+    }
+
     public func defaultResult() async -> TelecomAccountEntity? {
         let all = fetchAllAccounts()
-        let userDefaults = UserDefaults(suiteName: "group.com.telecom.widget")
+        let appGroupName = getAppGroup()
+        let userDefaults = UserDefaults(suiteName: appGroupName)
         var activeId = userDefaults?.string(forKey: "active_account_id")
         if activeId == nil || activeId?.isEmpty == true {
-            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) {
                 let fileURL = container.appendingPathComponent("active_account_id.txt")
                 activeId = try? String(contentsOf: fileURL, encoding: .utf8)
             }
@@ -55,11 +73,12 @@ public struct TelecomAccountQuery: EntityQuery {
 
     private func fetchAllAccounts() -> [TelecomAccountEntity] {
         var jsonString: String? = nil
-        let userDefaults = UserDefaults(suiteName: "group.com.telecom.widget")
+        let appGroupName = getAppGroup()
+        let userDefaults = UserDefaults(suiteName: appGroupName)
         jsonString = userDefaults?.string(forKey: "all_accounts_data")
 
         if jsonString == nil || jsonString?.isEmpty == true {
-            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) {
                 let fileURL = container.appendingPathComponent("all_accounts.json")
                 jsonString = try? String(contentsOf: fileURL, encoding: .utf8)
             }

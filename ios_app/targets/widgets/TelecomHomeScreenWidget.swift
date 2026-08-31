@@ -66,9 +66,40 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 
+    // Helper to dynamically find the App Group from the signed provisioning profile (Crucial for AltStore)
+    private func getAppGroup() -> String {
+        // Fallback default
+        let defaultGroup = "group.com.telecom.widget"
+        
+        guard let provisionPath = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
+              let provisionString = try? String(contentsOfFile: provisionPath, encoding: .isoLatin1) else {
+            return defaultGroup
+        }
+        
+        guard let startRange = provisionString.range(of: "<?xml"),
+              let endRange = provisionString.range(of: "</plist>") else {
+            return defaultGroup
+        }
+        
+        let xmlString = String(provisionString[startRange.lowerBound..<endRange.upperBound])
+        
+        guard let data = xmlString.data(using: .utf8),
+              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+              let entitlements = plist["Entitlements"] as? [String: Any],
+              let appGroups = entitlements["com.apple.security.application-groups"] as? [String],
+              let firstGroup = appGroups.first else {
+            return defaultGroup
+        }
+        
+        return firstGroup
+    }
+
     private func readAccountData(for configuration: SelectAccountIntent) -> TelecomWidgetEntry {
         var log = ""
-        let userDefaults = UserDefaults(suiteName: "group.com.telecom.widget")
+        let appGroupName = getAppGroup()
+        log += "Grp: \(appGroupName)\n"
+        
+        let userDefaults = UserDefaults(suiteName: appGroupName)
         log += "UD: \(userDefaults != nil ? "OK" : "NIL")\n"
 
         var activeId = userDefaults?.string(forKey: "active_account_id")
@@ -76,7 +107,7 @@ public struct TelecomAppIntentProvider: AppIntentTimelineProvider {
         log += "UD_Act: \(activeId ?? "nil")\n"
         log += "UD_Json: \(jsonString?.isEmpty == false ? "YES" : "NO")\n"
 
-        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget")
+        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
         log += "URL: \(containerURL != nil ? "OK" : "NIL")\n"
 
         if jsonString == nil || jsonString?.isEmpty == true {

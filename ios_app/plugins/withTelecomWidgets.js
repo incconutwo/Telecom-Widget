@@ -100,14 +100,15 @@ class TelecomActivityModule: NSObject {
     let dict = options as? [String: Any] ?? [:]
     let activeAccountId = dict["activeAccountId"] as? String ?? ""
     let accountsJson    = dict["accountsJson"]    as? String ?? "[]"
+    let appGroupName    = getAppGroup()
 
-    if let ud = UserDefaults(suiteName: "group.com.telecom.widget") {
+    if let ud = UserDefaults(suiteName: appGroupName) {
       ud.set(activeAccountId, forKey: "active_account_id")
       ud.set(accountsJson,    forKey: "all_accounts_data")
       ud.synchronize()
     }
 
-    if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+    if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) {
       let accountsFile = container.appendingPathComponent("all_accounts.json")
       let activeFile   = container.appendingPathComponent("active_account_id.txt")
       try? accountsJson.write(to: accountsFile, atomically: true, encoding: .utf8)
@@ -230,10 +231,12 @@ class TelecomActivityModule: NSObject {
     _ resolve: @escaping RCTPromiseResolveBlock,
     reject: @escaping RCTPromiseRejectBlock
   ) {
+    let appGroupName = getAppGroup()
     var log = "HOST APP STORAGE DIAGNOSTIC\\n\\n"
+    log += "App Group: \\(appGroupName)\\n\\n"
     
     // Check UserDefaults
-    let ud = UserDefaults(suiteName: "group.com.telecom.widget")
+    let ud = UserDefaults(suiteName: appGroupName)
     log += "1. UserDefaults (App Group):\\n"
     log += ud != nil ? "   ✅ INITIALIZED\\n" : "   ❌ NULL/FAILED\\n"
     if let ud = ud {
@@ -243,7 +246,7 @@ class TelecomActivityModule: NSObject {
 
     // Check File Container
     log += "\\n2. Shared File Container:\\n"
-    let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget")
+    let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
     log += container != nil ? "   ✅ ACCESSIBLE\\n" : "   ❌ NULL/FAILED\\n"
     
     if let container = container {
@@ -259,8 +262,24 @@ class TelecomActivityModule: NSObject {
 
 // MARK: - Shared UserDefaults & File Storage helper
 
+private func getAppGroup() -> String {
+  let defaultGroup = "group.com.telecom.widget"
+  guard let provisionPath = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
+        let provisionString = try? String(contentsOfFile: provisionPath, encoding: .isoLatin1) else { return defaultGroup }
+  guard let startRange = provisionString.range(of: "<?xml"),
+        let endRange = provisionString.range(of: "</plist>") else { return defaultGroup }
+  let xmlString = String(provisionString[startRange.lowerBound..<endRange.upperBound])
+  guard let data = xmlString.data(using: .utf8),
+        let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+        let entitlements = plist["Entitlements"] as? [String: Any],
+        let appGroups = entitlements["com.apple.security.application-groups"] as? [String],
+        let firstGroup = appGroups.first else { return defaultGroup }
+  return firstGroup
+}
+
 private func telecomSaveToUserDefaults(options: [String: Any]) {
-  if let ud = UserDefaults(suiteName: "group.com.telecom.widget") {
+  let appGroupName = getAppGroup()
+  if let ud = UserDefaults(suiteName: appGroupName) {
     ud.set(options["operator"]          as? String ?? "Maroc Telecom", forKey: "widget_operator")
     ud.set(options["phoneNumber"]       as? String ?? "",              forKey: "widget_phone")
     ud.set(options["internetRemaining"] as? String ?? "0 Go",          forKey: "widget_internet")
@@ -277,7 +296,7 @@ private func telecomSaveToUserDefaults(options: [String: Any]) {
     ud.synchronize()
   }
 
-  if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.telecom.widget") {
+  if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) {
     let widgetDataFile = container.appendingPathComponent("widget_data.json")
     if let jsonData = try? JSONSerialization.data(withJSONObject: options, options: [.prettyPrinted]) {
       try? jsonData.write(to: widgetDataFile, options: [.atomic])
