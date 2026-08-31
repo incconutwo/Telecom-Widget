@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.author         = 'Telecom Widget'
   s.homepage       = 'https://github.com/incconutwo/Telecom-Widget'
   s.platforms      = { :ios => '16.1' }
-  s.source         = { :git => '' }
-  s.source_files   = '**/*.{h,m,mm,swift,hpp,cpp}'
+  s.source         = { :path => '.' }
+  s.source_files   = 'ios/**/*.{h,m,mm,swift,hpp,cpp}'
   s.dependency 'ExpoModulesCore'
 end
