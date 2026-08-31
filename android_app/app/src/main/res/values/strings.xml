@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Telecom Widget</string>
+    <string name="widget_settings">Widget settings</string>
+    <string name="account">Account</string>
+    <string name="widget_appearance_section">Appearance</string>
+    <string name="widget_opacity">Opacity</string>
+    <string name="widget_tint">Colours</string>
+    <string name="widget_tint_system">Match system</string>
+    <string name="widget_tint_light">Light</string>
+    <string name="widget_tint_dark">Dark</string>
+    <string name="widget_font">Font</string>
+    <string name="widget_font_one_ui">One UI Sans</string>
+    <string name="widget_font_google_sans">Google Sans Flex</string>
+    <string name="widget_show_extra_details">Show extra balance details</string>
+    <string name="widget_tap_action">Widget tap action</string>
+    <string name="tap_refresh">Refresh stats</string>
+    <string name="tap_app">Open app</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+</resources>

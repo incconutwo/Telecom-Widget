@@ -1,0 +1,103 @@
+name: Build iOS Physical Device IPA (for Sideloadly)
+
+on:
+  workflow_dispatch: # Manual trigger only (Click "Run workflow" in GitHub Actions tab)
+
+jobs:
+  build-ipa:
+    runs-on: macos-26
+    steps:
+      - name: Verify Xcode Version
+        run: |
+          xcodebuild -version
+
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ios_app/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ios_app
+        run: |
+          npm ci --legacy-peer-deps
+
+      - name: Generate Native iOS Project (Expo Prebuild)
+        working-directory: ios_app
+        run: |
+          npx expo prebuild --platform ios --clean
+
+      - name: Patch Podfile for Xcode 16 Swift Compatibility
+        working-directory: ios_app/ios
+        run: |
+          ruby -e '
+            podfile = File.read("Podfile")
+            patch = %Q{
+              installer.pods_project.targets.each do |target|
+                target.build_configurations.each do |config|
+                  config.build_settings["SWIFT_EMIT_MODULE_INTERFACE"] = "NO"
+                  config.build_settings["SWIFT_COMPILATION_MODE"] = "wholemodule"
+                  config.build_settings["SWIFT_STRICT_CONCURRENCY"] = "minimal"
+                end
+              end
+            }
+            if !podfile.include?("SWIFT_EMIT_MODULE_INTERFACE")
+              podfile.sub!(/post_install do \|installer\|/, "post_install do |installer|\n" + patch)
+              File.write("Podfile", podfile)
+            end
+          '
+          cat Podfile
+
+      - name: Install CocoaPods
+        working-directory: ios_app/ios
+        run: |
+          pod install
+
+      - name: Pre-bundle JavaScript (Metro offline bundle)
+        working-directory: ios_app
+        run: |
+          mkdir -p ios/main.jsbundle.d
+          npx expo export:embed \
+            --platform ios \
+            --dev false \
+            --entry-file index.ts \
+            --bundle-output ios/main.jsbundle \
+            --assets-dest ios/assets
+
+      - name: Build Xcode Project for Physical Device (ARM64 Release)
+        working-directory: ios_app/ios
+        run: |
+          xcodebuild -workspace TelecomWidget.xcworkspace \
+            -scheme TelecomWidget \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            -jobs $(sysctl -n hw.ncpu) \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DEBUG_INFORMATION_FORMAT=dwarf \
+            ONLY_ACTIVE_ARCH=YES \
+            ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package Payload into TelecomWidget.ipa
+        working-directory: ios_app/ios
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/TelecomWidget.app Payload/
+          zip -r ../TelecomWidget-Device.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TelecomWidget-Device-IPA
+          path: ios_app/TelecomWidget-Device.ipa
+          retention-days: 7

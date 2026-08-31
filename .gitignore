@@ -1,0 +1,59 @@
+# Python & Temp files
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# APKS, Dumps & Temp files
+*.apk
+*.aab
+*.ab
+*.txt
+*.zip
+orange_cookies.json
+.forgesync_push_token
+
+# Scratch & Decompiler Directories
+jadx/
+jadx-1.5.0/
+jadx2/
+twidget-main/
+
+# Scratch & Intermediate scripts
+debug_iam.py
+extract_all_strings.py
+extract_strings.py
+get_consumption(1).py
+install_sdk.py
+orange_client(1).py
+test_api.py
+test_auth_post.py
+test_firebase.py
+test_inwi.py
+test_orange_parse.py
+
+# Android Gradle, IDE & Build Output
+android_app/.gradle/
+android_app/build/
+android_app/*/build/
+android_app/local.properties
+android_app/.idea/
+android_app/*.iml
+android_app/*/*.iml
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# OS specific
+.DS_Store
+Thumbs.db
+*.hprof
+.kotlin/
+
+# iOS App
+ios_app/node_modules/
+ios_app/.expo/
+ios_app/ios/
+ios_app/android/
