@@ -1,4 +1,4 @@
-const { withInfoPlist, withEntitlementsPlist, withDangerousMod } = require('@expo/config-plugins');
+const { withInfoPlist, withEntitlementsPlist, withDangerousMod, withXcodeProject } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -27,7 +27,7 @@ const withTelecomWidgets = (config) => {
       const projectDir = path.join(iosRoot, projectName);
 
       // Copy native module bridge files to main app target directory
-      const nativeModulesSrc = path.join(config.modRequest.projectRoot, 'targets', 'native_modules');
+      const nativeModulesSrc = path.join(config.modRequest.projectRoot, 'native_modules');
       if (fs.existsSync(nativeModulesSrc) && fs.existsSync(projectDir)) {
         const files = fs.readdirSync(nativeModulesSrc);
         for (const file of files) {
@@ -65,6 +65,29 @@ const withTelecomWidgets = (config) => {
       return config;
     },
   ]);
+
+  // 4. Add Native Module Bridge Source Files to Main App Target in Xcode Project
+  config = withXcodeProject(config, (config) => {
+    const xcodeProject = config.modResults;
+    const projectName = config.modRequest.projectName || 'telecomwidget';
+
+    const targetUuid = xcodeProject.getFirstTarget().uuid;
+    const groupKey = xcodeProject.findPBXGroupKey({ name: projectName });
+
+    const sourceFiles = [
+      'TelecomActivityModule.swift',
+      'TelecomActivityModule.m',
+      'TelecomWidgetAttributes.swift',
+    ];
+
+    sourceFiles.forEach((file) => {
+      if (!xcodeProject.hasFile(file)) {
+        xcodeProject.addSourceFile(file, { target: targetUuid }, groupKey);
+      }
+    });
+
+    return config;
+  });
 
   return config;
 };
